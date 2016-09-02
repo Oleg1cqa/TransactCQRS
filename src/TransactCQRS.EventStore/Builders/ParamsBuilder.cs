@@ -9,9 +9,9 @@ namespace TransactCQRS.EventStore.Builders
 	{
 		private readonly ParameterInfo[] _params;
 
-		public ParamsBuilder(ParameterInfo[] @params)
+		public ParamsBuilder(MethodBase method)
 		{
-			_params = @params;
+			_params = method.GetParameters();
 		}
 
 		public string GetNameList()

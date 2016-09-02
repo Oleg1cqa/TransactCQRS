@@ -3,49 +3,54 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace TransactCQRS.EventStore.Builders
 {
 	internal class EntityBuilder
 	{
-		private readonly Type _entityType;
+		private readonly Type _baseType;
 		private readonly TransactionBuilder _rootBuilder;
+		private readonly string _className;
+		private readonly string _ownerName;
 
-		public EntityBuilder(Type entityType, TransactionBuilder rootBuilder)
+		public EntityBuilder(TransactionBuilder rootBuilder, Type baseType, string className)
 		{
-			_entityType = entityType;
+			_baseType = baseType;
 			_rootBuilder = rootBuilder;
+			_className = className;
+
+			_ownerName = Utils.ProtectName("owner");
 		}
 
 		public string Build()
 		{
-			var sourceName = _entityType.Name;
-			var ownerName = $"_owner_{DateTime.Now.Ticks}";
-			string baseTypeName = _entityType.ToCsDeclaration();
+			var baseClassName = _baseType.ToCsDeclaration();
+			var eventsLoader = new StringBuilder();
 			return $@"
-						public class {sourceName}Impl : {baseTypeName}, IReference<{baseTypeName}>
+						public class {_className} : {baseClassName}, IReference<{baseClassName}>
 							{{
-								private readonly {_rootBuilder.TransactionType.Name} _{ownerName};
+								private readonly {_rootBuilder.ClassName} _{_ownerName};
 								private bool _loading;
 
 								public bool IsLoaded => true;
-								public string Identity => _{ownerName}.GetIdentity(this);
+								public string Identity => _{_ownerName}.GetIdentity(this);
 
-								{BuildCostructors(ownerName)}
+								{BuildCostructors()}
 
-								public {baseTypeName} Load()
+								public {baseClassName} Load()
 								{{
 									return this;
 								}}
 
-								{BuildEvents(ownerName)}
+								{new EventsBuilder(_rootBuilder, _baseType, _ownerName, eventsLoader).Build()}
 
-								public {sourceName}Impl LoadEvents(IEnumerable<AbstractRepository.EventData> events)
+								public {_className} LoadEvents(IEnumerable<AbstractRepository.EventData> events)
 								{{
 									_loading = true;
 									foreach(var @event in events)
 									{{
-										{BuildLoader()}
+										{eventsLoader}
 										throw new System.InvalidOperationException(""Unsupported type of event detected."");
 									}}
 									_loading = false;
@@ -54,39 +59,26 @@ namespace TransactCQRS.EventStore.Builders
 
 								private void AddEvent(object root, string eventName, IDictionary<string, object> @params)
 								{{
-									_{ownerName}.AddEvent(root, eventName, @params);
+									_{_ownerName}.AddEvent(root, eventName, @params);
 								}}
 							}}";
 		}
 
-		private string BuildLoader()
+		private string BuildCostructors()
 		{
-			var result = string.Empty;
-			if (_rootBuilder.EntityLoaders.ContainsKey(_entityType))
-				result = _rootBuilder.EntityLoaders[_entityType].ToString();
-			return result;
-		}
-
-		private string BuildEvents(string ownerName)
-		{
-			return _rootBuilder.BuildEvents(_entityType, ownerName);
-		}
-
-		private string BuildCostructors(string ownerName)
-		{
-			return _entityType.GetTypeInfo().GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-				.Select(item => BuildCostructor(item, ownerName))
+			return _baseType.GetTypeInfo().GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+				.Select(BuildCostructor)
 				.Aggregate((result, item) => $"{result}{item}\r\n");
 		}
 
-		private string BuildCostructor(ConstructorInfo constructor, string ownerName)
+		private string BuildCostructor(ConstructorInfo constructor)
 		{
-			var sourceName = _entityType.Name;
-			var @params = new ParamsBuilder(constructor.GetParameters());
+			var @params = new ParamsBuilder(constructor);
 			return $@"
-								public {sourceName}Impl({_rootBuilder.TransactionType.Name} {ownerName}, {@params.CreateDeclarations()}) : base({@params.GetNameList()})
+								public {_className}({_rootBuilder.ClassName} {_ownerName}, {@params.CreateDeclarations()})
+									: base({@params.GetNameList()})
 								{{
-									_{ownerName} = {ownerName};
+									_{_ownerName} = {_ownerName};
 								}}";
 		}
 	}
