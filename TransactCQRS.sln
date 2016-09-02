@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4BEBF5AE-9D2F-4A32-A867-9EBA55422914}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+		License.txt = License.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.EventStore", "src\TransactCQRS.EventStore\TransactCQRS.EventStore.xproj", "{FAF36307-2254-4561-8F8D-618414678213}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.EventStore.Tests", "src\TransactCQRS.EventStore.Tests\TransactCQRS.EventStore.Tests.xproj", "{D76165B5-088F-49D3-A2B4-310C294BA9CB}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.EventStore.MemoryRepository", "src\TransactCQRS.EventStore.MemoryRepository\TransactCQRS.EventStore.MemoryRepository.xproj", "{E1A645B4-7F6E-41BC-8087-5E5A83FEAA7D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FAF36307-2254-4561-8F8D-618414678213}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAF36307-2254-4561-8F8D-618414678213}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAF36307-2254-4561-8F8D-618414678213}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAF36307-2254-4561-8F8D-618414678213}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D76165B5-088F-49D3-A2B4-310C294BA9CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D76165B5-088F-49D3-A2B4-310C294BA9CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D76165B5-088F-49D3-A2B4-310C294BA9CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D76165B5-088F-49D3-A2B4-310C294BA9CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1A645B4-7F6E-41BC-8087-5E5A83FEAA7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1A645B4-7F6E-41BC-8087-5E5A83FEAA7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1A645B4-7F6E-41BC-8087-5E5A83FEAA7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1A645B4-7F6E-41BC-8087-5E5A83FEAA7D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FAF36307-2254-4561-8F8D-618414678213} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
+		{D76165B5-088F-49D3-A2B4-310C294BA9CB} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
+		{E1A645B4-7F6E-41BC-8087-5E5A83FEAA7D} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
+	EndGlobalSection
+EndGlobal
