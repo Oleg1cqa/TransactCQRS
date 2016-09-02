@@ -29,7 +29,7 @@ namespace TransactCQRS.EventStore.MemoryRepository
 		{
 			if (events.SelectMany(item => item.Params.Values)
 				.Any(item => item.IsSupportedClass()))
-				throw new ArgumentOutOfRangeException(nameof(events), "Only value type parameters supported.");
+				throw new ArgumentOutOfRangeException(nameof(events), Resources.TextResource.OnlyValueTypeSupported);
 
 		}
 	}
