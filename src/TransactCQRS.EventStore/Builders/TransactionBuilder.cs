@@ -65,7 +65,7 @@ namespace TransactCQRS.EventStore.Builders
 		private static void CheckCompilation(EmitResult source)
 		{
 			if (!source.Success)
-				throw new InvalidOperationException(string.Format("Transaction compilation failed. {0}",
+				throw new InvalidOperationException(string.Format(Resources.TextResource.TransactionCompilationFailed,
 					source.Diagnostics.Select(item => item.ToString()).Aggregate((result, item) => $"{result} {item}.")));
 		}
 
@@ -156,10 +156,10 @@ namespace TransactCQRS.EventStore.Builders
 		// Example: public virtual void SetDescription(string value)
 		private string BuildEvent(MethodInfo method, string ownerName)
 		{
-			if (!method.IsPublic) throw new InvalidOperationException($"Event method \"{method.Name}\" should be public.");
-			if (!method.IsVirtual) throw new InvalidOperationException($"Event method \"{method.Name}\" should be virtual.");
+			if (!method.IsPublic) throw new InvalidOperationException(string.Format(Resources.TextResource.MethodShouldBePublic, method.Name));
+			if (!method.IsVirtual) throw new InvalidOperationException(string.Format(Resources.TextResource.MethodShouldBeVirtual, method.Name));
 			if (method.IsAbstract) return BuildAbstractEvent(method, ownerName);
-			if (method.ReturnType != typeof(void)) throw new InvalidOperationException($"Event method \"{method.Name}\" should return void.");
+			if (method.ReturnType != typeof(void)) throw new InvalidOperationException(string.Format(Resources.TextResource.MethodShouldReturnVoid, method.Name));
 			var paramsBuilder = new ParamsBuilder(method.GetParameters());
 			GetEntityLoaders(method.DeclaringType).AppendLine(BuildEntityLoader(method.Name, paramsBuilder));
 			return $@"
@@ -193,7 +193,7 @@ namespace TransactCQRS.EventStore.Builders
 		// Example: public abstract TestEntity CreateTestEntity(string name);
 		private string BuildAbstractEvent(MethodInfo method, string ownerName)
 		{
-			if (!method.ReturnType.GetTypeInfo().IsClass) throw new InvalidOperationException($"Event method \"{method.Name}\" should return class.");
+			if (!method.ReturnType.GetTypeInfo().IsClass) throw new InvalidOperationException(string.Format(Resources.TextResource.MethodShouldReturnClass, method.Name));
 			var paramsBuilder = new ParamsBuilder(method.GetParameters());
 			var sourceName = method.ReturnType.Name;
 			_entitiesCode.AppendLine(BuildEntityClass(method.ReturnType));

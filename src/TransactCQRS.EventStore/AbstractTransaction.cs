@@ -33,7 +33,7 @@ namespace TransactCQRS.EventStore
 			var events = repository.LoadEntity(identity).ToArray();
 			var @event = events.First();
 			if (@event.EventName != $"{typeof(TTransaction).Name} started." || @event.Identity != @event.Root || @event.Identity != @event.Transaction)
-				throw new InvalidOperationException("Unsupported type of transaction detected.");
+				throw new InvalidOperationException(Resources.TextResource.UnsupportedTransactionType);
 			return (TTransaction)TransactionBuilder.CreateInstance<TTransaction>(repository, (string)@event.Params["description"])
 				.LoadEvents(events.Skip(1));
 		}
@@ -72,7 +72,7 @@ namespace TransactCQRS.EventStore
 		{
 			string result;
 			if (!_identities.TryGetValue(entity, out result))
-				throw new InvalidOperationException("Entity haven't identity in scope of current transaction.");
+				throw new InvalidOperationException(Resources.TextResource.EntityHaventIdentity);
 			return result;
 		}
 

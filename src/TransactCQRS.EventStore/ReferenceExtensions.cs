@@ -10,7 +10,7 @@ namespace TransactCQRS.EventStore
 		{
 			var result = source as IReference<TEntity>;
 			if (result == null)
-				throw new InvalidOperationException("Unsupported type of entity.");
+				throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
 			return result;
 
 		}

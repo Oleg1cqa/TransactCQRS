@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Starodub Oleg. All Rights Reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Globalization;
 using Xunit;
 
 namespace TransactCQRS.EventStore.Tests
@@ -53,6 +54,7 @@ namespace TransactCQRS.EventStore.Tests
 		[Fact]
 		public void EventMethodShouldBePublic()
 		{
+			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
 			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<NonPublicEvent>("Started EventMethodShouldBePublic test."));
@@ -69,6 +71,7 @@ namespace TransactCQRS.EventStore.Tests
 		[Fact]
 		public void EventMethodShouldBeVirtual()
 		{
+			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
 			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<NonVirtualEvent>("Started EventMethodShouldBeVirtual test."));
@@ -85,6 +88,7 @@ namespace TransactCQRS.EventStore.Tests
 		[Fact]
 		public void EventMethodShouldReturnVoid()
 		{
+			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
 			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<NonVoidEvent>("Started EventMethodShouldReturnVoid test."));
@@ -104,6 +108,7 @@ namespace TransactCQRS.EventStore.Tests
 		[Fact]
 		public void EventMethodShouldHaveReturnType()
 		{
+			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
 			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<VoidEvent>("Started EventMethodShouldHaveReturnType test."));
