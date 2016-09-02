@@ -68,7 +68,7 @@ namespace TransactCQRS.EventStore
 			return result;
 		}
 
-		public virtual string GetIdentity<TEntity>(TEntity entity) where TEntity : class
+		public virtual string GetIdentity(object entity)
 		{
 			string result;
 			if (!_identities.TryGetValue(entity, out result))

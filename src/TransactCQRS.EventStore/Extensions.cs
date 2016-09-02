@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace TransactCQRS.EventStore
 {
-	public static class TypeExtensions
+	public static class Extensions
 	{
 		public static string ToCsDeclaration(this Type source)
 		{
@@ -23,6 +23,28 @@ namespace TransactCQRS.EventStore
 		public static bool IsSupportedClass(this object value)
 		{
 			return !(value is string) && value.GetType().GetTypeInfo().IsClass;
+		}
+
+		/// <summary>
+		/// Make reference to Entity.
+		/// </summary>
+		public static IReference<TEntity> GetReference<TEntity>(this TEntity source) where TEntity : class
+		{
+			var result = source as IReference<TEntity>;
+			if (result == null)
+				throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
+			return result;
+		}
+
+		/// <summary>
+		/// Get Identity of Entity.
+		/// </summary>
+		public static string GetIdentity<TEntity>(this TEntity source) where TEntity : class
+		{
+			var result = source as IReference<TEntity>;
+			if (result == null)
+				throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
+			return result.Identity;
 		}
 	}
 }

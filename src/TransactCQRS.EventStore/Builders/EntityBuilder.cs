@@ -21,15 +21,19 @@ namespace TransactCQRS.EventStore.Builders
 		{
 			var sourceName = _entityType.Name;
 			var ownerName = $"_owner_{DateTime.Now.Ticks}";
+			string baseTypeName = _entityType.ToCsDeclaration();
 			return $@"
-						public class {sourceName}Impl : {_entityType.ToCsDeclaration()}, IReference<{_entityType.ToCsDeclaration()}>
+						public class {sourceName}Impl : {baseTypeName}, IReference<{baseTypeName}>
 							{{
 								private readonly {_rootBuilder.TransactionType.Name} _{ownerName};
 								private bool _loading;
 
+								public bool IsLoaded => true;
+								public string Identity => _{ownerName}.GetIdentity(this);
+
 								{BuildCostructors(ownerName)}
 
-								public {_entityType.ToCsDeclaration()} Load()
+								public {baseTypeName} Load()
 								{{
 									return this;
 								}}

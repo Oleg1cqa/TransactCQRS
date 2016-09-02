@@ -5,6 +5,7 @@ namespace TransactCQRS.EventStore.Builders
 	internal class LazyLoadReference<TEntity> : IReference<TEntity> where TEntity : class
 	{
 		public AbstractTransaction Transaction { get; }
+		/// <inheritdoc/>
 		public string Identity { get; }
 		public TEntity Entity { get; private set; }
 
@@ -19,6 +20,10 @@ namespace TransactCQRS.EventStore.Builders
 			Identity = identity;
 		}
 
+		/// <inheritdoc/>
+		public bool IsLoaded => Entity != null;
+
+		/// <inheritdoc/>
 		public TEntity Load()
 		{
 			return Entity ?? (Entity = Transaction.GetEntity<TEntity>(Identity));

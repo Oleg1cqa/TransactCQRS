@@ -2,8 +2,24 @@
 
 namespace TransactCQRS.EventStore
 {
+	/// <summary>
+	/// Reference to entity.
+	/// </summary>
 	public interface IReference<out TEntity> where TEntity : class
 	{
+		/// <summary>
+		/// Define load object in transaction or not.
+		/// </summary>
+		bool IsLoaded { get; }
+
+		/// <summary>
+		/// Load entity in transaction scope.
+		/// </summary>
 		TEntity Load();
+
+		/// <summary>
+		/// Get Identity of Entity.
+		/// </summary>
+		string Identity { get; }
 	}
 }

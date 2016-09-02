@@ -84,6 +84,7 @@ namespace TransactCQRS.EventStore.Builders
 		private string BuildClass()
 		{
 			var ownerName = $"owner_{DateTime.Now.Ticks}";
+			string baseTypeName = TransactionType.ToCsDeclaration();
 			var result = $@"
 				using System;
 				using System.Linq;
@@ -92,15 +93,23 @@ namespace TransactCQRS.EventStore.Builders
 
 				namespace CQRSDynamicCode
 				{{
-					public class {$"{TransactionType.Name}"} : {TransactionType.ToCsDeclaration()}
+					public class {$"{TransactionType.Name}"} : {baseTypeName}, IReference<{baseTypeName}>
 					{{
 						private {TransactionType.Name} _{ownerName} => this;
 						private bool _loading;
+
+						public bool IsLoaded => true;
+						public string Identity => GetIdentity(this);
 
 						public {$"{TransactionType.Name}"}(AbstractRepository repository, string description)
 						{{
 							Repository = repository;
 							Description = description;
+						}}
+
+						public {baseTypeName} Load()
+						{{
+							return this;
 						}}
 
 						{BuildEvents(TransactionType, ownerName)}

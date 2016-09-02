@@ -21,8 +21,8 @@ namespace TransactCQRS.EventStore.Tests
 				var product1 = transaction.CreateProduct("product1");
 				var product2 = transaction.CreateProduct("product2");
 				transaction.Commit();
-				product1Id = transaction.GetIdentity(product1);
-				product2Id = transaction.GetIdentity(product2);
+				product1Id = product1.GetIdentity();
+				product2Id = product2.GetIdentity();
 			}
 			using (var transaction = repository.CreateTransaction<OrderTransaction>("Create order."))
 			{
@@ -31,7 +31,7 @@ namespace TransactCQRS.EventStore.Tests
 				order.AddLine(order.CreateLine(transaction.GetEntity<Product>(product1Id).GetReference()));
 				order.AddLine(order.CreateLine(transaction.GetEntity<Product>(product2Id).GetReference()));
 				transaction.Commit();
-				orderId = transaction.GetIdentity(order);
+				orderId = order.GetIdentity();
 			}
 			using (var transaction = repository.CreateTransaction<OrderTransaction>("Create order."))
 			{

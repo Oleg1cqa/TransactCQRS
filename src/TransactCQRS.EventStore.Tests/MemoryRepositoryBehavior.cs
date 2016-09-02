@@ -19,7 +19,7 @@ namespace TransactCQRS.EventStore.Tests
 				var entity = transaction.CreateTestEntity("TestName");
 				entity.MakeOperation1(456);
 				transaction.Commit();
-				identity = transaction.GetIdentity(entity);
+				identity = entity.GetIdentity();
 			}
 			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
 			{
@@ -42,7 +42,7 @@ namespace TransactCQRS.EventStore.Tests
 				entity.MakeOperation1(456);
 				transaction.SetCreator("Oleg");
 				transaction.Commit();
-				identity = transaction.GetIdentity(transaction);
+				identity = transaction.GetIdentity();
 			}
 			using (var transaction = repository.GetTransaction<TestTransaction>(identity))
 			{
