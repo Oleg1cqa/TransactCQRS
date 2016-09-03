@@ -61,7 +61,9 @@ namespace TransactCQRS.EventStore
 			}
 			else
 			{
-				result = LoadEntity<TEntity>(Repository.LoadEntity(identity));
+				var loadedEvents = Repository.LoadEntity(identity);
+				if (!loadedEvents.Any()) throw new ArgumentOutOfRangeException(nameof(identity));
+				result = LoadEntity<TEntity>(loadedEvents);
 				_entities.TryAdd(identity, result);
 				_identities.TryAdd(result, identity);
 			}
@@ -131,9 +133,12 @@ namespace TransactCQRS.EventStore
 			{
 				if (!@params[key].IsSupportedClass()) continue;
 				string result;
-				if (!_identities.TryGetValue(@params[key], out result))
+				if (_identities.TryGetValue(@params[key], out result))
+					@params[key] = result;
+				else if (@params[key].IsIReference())
+					@params[key] = @params[key].GetIdentity();
+				else
 					throw new ArgumentOutOfRangeException(nameof(@params), "Only value type parameters supported.");
-				@params[key] = result;
 			}
 			return @params;
 		}

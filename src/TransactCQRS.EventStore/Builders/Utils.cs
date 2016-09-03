@@ -12,9 +12,11 @@ namespace TransactCQRS.EventStore.Builders
 {
 	internal static class Utils
 	{
+		private static readonly Random Random = new Random();
+
 		public static string ProtectName(string source)
 		{
-			return $"{source}_{DateTime.Now.Ticks}";;
+			return $"{source}_{Random.Next(100000)}";
 		}
 
 		public static Type CompileAndLoad(TransactionBuilder builder)

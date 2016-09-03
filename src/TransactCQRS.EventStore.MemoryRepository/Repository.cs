@@ -13,7 +13,17 @@ namespace TransactCQRS.EventStore.MemoryRepository
 
 		protected override IEnumerable<EventData> LoadEntity(string identity)
 		{
-			return EventQueue.Where(item => item.Root == identity).OrderBy(item => int.Parse(item.Identity)).ToArray();
+			return EventQueue.Where(item => item.Root == identity)
+				.Select(item => new EventData
+				{
+					EventName = item.EventName,
+					Identity = item.Identity,
+					Root = item.Root,
+					Transaction = item.Transaction,
+					Params = new Dictionary<string, object>(item.Params)
+				})
+				.OrderBy(item => int.Parse(item.Identity))
+				.ToArray();
 		}
 
 		protected override void Commit(int count, Func<Func<string>, IEnumerable<EventData>> getEvents)

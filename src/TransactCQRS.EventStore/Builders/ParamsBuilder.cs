@@ -53,5 +53,18 @@ namespace TransactCQRS.EventStore.Builders
 			return _params.Select(item => $"{{\"{item.Name}\", {item.Name}}}")
 				.Aggregate((result, item) => $"{result}, {item}");
 		}
+
+		internal string BuildParameterConversion(string ownerName)
+		{
+			var result = _params.Where(item => item.ParameterType.IsIReference())
+				.Select(item =>
+					$"@event.Params[\"{item.Name}\"] = new LazyLoadReference<{item.ParameterType.GenericTypeArguments[0].ToCsDeclaration()}>(_{ownerName}, (string)@event.Params[\"{item.Name}\"]);")
+				.Concat(_params.Where(item => item.ParameterType.IsSupportedClass())
+					.Where(item => !item.ParameterType.IsIReference())
+					.Select(item =>
+						$"@event.Params[\"{item.Name}\"] = _{ownerName}.GetEntity<{item.ParameterType.ToCsDeclaration()}>((string)@event.Params[\"{item.Name}\"]);"))
+				.ToArray();
+			return result.Any() ? result.Aggregate((aggregate, item) => $"{aggregate}\r\n{item}") : string.Empty;
+		}
 	}
 }

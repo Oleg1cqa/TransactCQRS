@@ -22,7 +22,21 @@ namespace TransactCQRS.EventStore
 
 		public static bool IsSupportedClass(this object value)
 		{
-			return !(value is string) && value.GetType().GetTypeInfo().IsClass;
+			return value.GetType().IsSupportedClass();
+		}
+
+		public static bool IsSupportedClass(this Type type)
+		{
+			return type != typeof(string) && type.GetTypeInfo().IsClass;
+		}
+
+		public static bool IsIReference(this object value)
+		{
+			return value.GetType().IsIReference();
+		}
+		public static bool IsIReference(this Type type)
+		{
+			return type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(IReference<>);
 		}
 
 		/// <summary>
@@ -45,6 +59,17 @@ namespace TransactCQRS.EventStore
 			if (result == null)
 				throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
 			return result.Identity;
+		}
+
+		/// <summary>
+		/// Get Identity of Entity.
+		/// </summary>
+		public static string GetIdentity(this object source)
+		{
+			if (!source.IsIReference()) throw new ArgumentOutOfRangeException(nameof(source));
+			return (string)source.GetType()
+				.GetRuntimeProperty(nameof(IReference<object>.Identity))
+				.GetValue(source);
 		}
 	}
 }

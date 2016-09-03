@@ -38,6 +38,7 @@ namespace TransactCQRS.EventStore.Tests
 				var order = transaction.GetEntity<Order>(orderId);
 				var customer = order.Customer.Load();
 				var product = order.Lines.First().Product.Load();
+
 				Assert.Equal("product1", product.Name);
 				Assert.Equal("Customer name", customer.Name);
 			}

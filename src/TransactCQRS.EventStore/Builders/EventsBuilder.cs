@@ -55,7 +55,10 @@ namespace TransactCQRS.EventStore.Builders
 		{
 			return $@"
 							if (@event.EventName == ""{eventName}"" && AbstractTransaction.HaveEqualParamNames(@event.Params{paramsBuilder.GetQuotedList()})) 
-								{eventName}({paramsBuilder.CreateParamsWith("@event.Params")}); else";
+							{{
+								{paramsBuilder.BuildParameterConversion(_ownerName)}
+								{eventName}({paramsBuilder.CreateParamsWith("@event.Params")});
+							}} else";
 		}
 
 		// Example: public abstract TestEntity CreateTestEntity(string name);

@@ -50,6 +50,7 @@ namespace TransactCQRS.EventStore.Builders
 				using System.Linq;
 				using System.Collections.Generic;
 				using TransactCQRS.EventStore;
+				using TransactCQRS.EventStore.Builders;
 
 				namespace CQRSDynamicCode
 				{{
@@ -126,8 +127,12 @@ namespace TransactCQRS.EventStore.Builders
 			@params = string.IsNullOrEmpty(@params) ? "this" : $"this, {@params}";
 			var entityClassName = Entities[resultType];
 			return $@"
-							if (typeof(TEntity) == typeof({resultType.ToCsDeclaration()}) && @event.EventName == ""{eventName}"") 
-								return (TEntity)(object)(new {entityClassName}({@params}).LoadEvents(events));";
+							if (typeof(TEntity) == typeof({resultType.ToCsDeclaration()}) && @event.EventName == ""{eventName}""
+								&& AbstractTransaction.HaveEqualParamNames(@event.Params{paramsBuilder.GetQuotedList()})) 
+							{{
+								{paramsBuilder.BuildParameterConversion(_ownerName)}
+								return (TEntity)(object)(new {entityClassName}({@params}).LoadEvents(events));
+							}}";
 		}
 	}
 }

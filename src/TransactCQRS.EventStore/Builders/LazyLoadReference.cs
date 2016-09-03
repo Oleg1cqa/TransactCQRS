@@ -2,7 +2,7 @@
 
 namespace TransactCQRS.EventStore.Builders
 {
-	internal class LazyLoadReference<TEntity> : IReference<TEntity> where TEntity : class
+	public class LazyLoadReference<TEntity> : IReference<TEntity> where TEntity : class
 	{
 		public AbstractTransaction Transaction { get; }
 		/// <inheritdoc/>
