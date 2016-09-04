@@ -141,4 +141,7 @@
   <data name="TransactionCompilationFailed" xml:space="preserve">
     <value>Компиляция транзакции провалилась. "{0}"</value>
   </data>
+  <data name="OnlyValueTypeSupported" xml:space="preserve">
+    <value>Поддерживается только тип-значение.</value>
+  </data>
 </root>

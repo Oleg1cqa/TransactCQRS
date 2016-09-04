@@ -12,7 +12,7 @@ namespace TransactCQRS.EventStore.Tests
 			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
-			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<NonPublicEvent>("Started EventMethodShouldBePublic test."));
+			var ex = Assert.Throws<InvalidOperationException>(() => repository.StartTransaction<NonPublicEvent>("Started EventMethodShouldBePublic test."));
 
 			Assert.Equal("Event method \"SetDescription\" should be public.", ex.Message);
 		}
@@ -29,7 +29,7 @@ namespace TransactCQRS.EventStore.Tests
 			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
-			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<NonVirtualEvent>("Started EventMethodShouldBeVirtual test."));
+			var ex = Assert.Throws<InvalidOperationException>(() => repository.StartTransaction<NonVirtualEvent>("Started EventMethodShouldBeVirtual test."));
 
 			Assert.Equal("Event method \"SetDescription\" should be virtual.", ex.Message);
 		}
@@ -46,7 +46,7 @@ namespace TransactCQRS.EventStore.Tests
 			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
-			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<NonVoidEvent>("Started EventMethodShouldReturnVoid test."));
+			var ex = Assert.Throws<InvalidOperationException>(() => repository.StartTransaction<NonVoidEvent>("Started EventMethodShouldReturnVoid test."));
 
 			Assert.Equal("Event method \"SetDescription\" should return void.", ex.Message);
 		}
@@ -66,7 +66,7 @@ namespace TransactCQRS.EventStore.Tests
 			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
 
-			var ex = Assert.Throws<InvalidOperationException>(() => repository.CreateTransaction<VoidEvent>("Started EventMethodShouldHaveReturnType test."));
+			var ex = Assert.Throws<InvalidOperationException>(() => repository.StartTransaction<VoidEvent>("Started EventMethodShouldHaveReturnType test."));
 
 			Assert.Equal("Event method \"SetDescription\" should return class.", ex.Message);
 		}

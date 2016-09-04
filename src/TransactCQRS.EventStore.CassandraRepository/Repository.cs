@@ -39,10 +39,11 @@ namespace TransactCQRS.EventStore.CassandraRepository
 
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
-			return (from item in _table where item.Root.Equals(identity) select item)
+			var id = Guid.Parse(identity);
+			return _table.Where(item => item.Root.Equals(id))
+				.OrderBy(item => item.Identity)
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute()
-				.OrderBy(item => item.Position)
 				.Select(EventData.Convert)
 				.ToArray();
 		}
@@ -51,15 +52,11 @@ namespace TransactCQRS.EventStore.CassandraRepository
 		{
 			var startTime = DateTimeOffset.UtcNow;
 			var batch = _session.CreateBatch();
-			batch.Append(getEvents(GetNewId).Select(item => EventData.Convert(item, startTime = startTime.AddMilliseconds(1), count))
+			batch.Append(getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
+				.Select(EventData.Convert)
 				.Select(_table.Insert));
 			batch.SetConsistencyLevel(ConsistencyLevel.Quorum)
-				.Execute();
-		}
-
-		private static string GetNewId()
-		{
-			return Guid.NewGuid().ToString();
+			.Execute();
 		}
 
 		public class ParamDesc
@@ -71,11 +68,9 @@ namespace TransactCQRS.EventStore.CassandraRepository
 
 		public new class EventData
 		{
-			public DateTimeOffset Position { get; set; }
-			public int Count { get; set; }
-			public string Transaction { get; set; }
-			public string Identity { get; set; }
-			public string Root { get; set; }
+			public TimeUuid Transaction { get; set; }
+			public TimeUuid Identity { get; set; }
+			public TimeUuid Root { get; set; }
 			public string EventName { get; set; }
 			public IEnumerable<ParamDesc> Params { get; set; }
 
@@ -84,9 +79,9 @@ namespace TransactCQRS.EventStore.CassandraRepository
 				return new AbstractRepository.EventData
 				{
 					EventName = source.EventName,
-					Identity = source.Identity,
-					Root = source.Root,
-					Transaction = source.Transaction,
+					Identity = source.Identity.ToString(),
+					Root = source.Root.ToString(),
+					Transaction = source.Transaction.ToString(),
 					Params = Convert(source.Params)
 				};
 			}
@@ -97,16 +92,14 @@ namespace TransactCQRS.EventStore.CassandraRepository
 					item => System.Convert.ChangeType(item.Value, Type.GetType(item.TypeName, true)));
 			}
 
-			public static EventData Convert(AbstractRepository.EventData source, DateTimeOffset position, int count)
+			public static EventData Convert(AbstractRepository.EventData source)
 			{
 				return new EventData
 				{
-					Position = position,
-					Count = count,
 					EventName = source.EventName,
-					Identity = source.Identity,
-					Root = source.Root,
-					Transaction = source.Transaction,
+					Identity = Guid.Parse(source.Identity),
+					Root = Guid.Parse(source.Root),
+					Transaction = Guid.Parse(source.Transaction),
 					Params = Convert(source.Params),
 				};
 			}

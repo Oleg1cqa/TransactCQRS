@@ -132,6 +132,9 @@
   <data name="MethodShouldReturnVoid" xml:space="preserve">
     <value>Event method "{0}" should return void.</value>
   </data>
+  <data name="OnlyValueTypeSupported" xml:space="preserve">
+    <value>Only value type parameters supported.</value>
+  </data>
   <data name="TransactionCompilationFailed" xml:space="preserve">
     <value>Transaction compilation failed. {0}</value>
   </data>

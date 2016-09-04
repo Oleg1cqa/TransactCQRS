@@ -105,6 +105,15 @@ namespace TransactCQRS.EventStore.Resources {
         }
         
         /// <summary>
+        ///    Ищет локализованную строку, аналогичную Only value type parameters supported..
+        /// </summary>
+        public static string OnlyValueTypeSupported {
+            get {
+                return ResourceManager.GetString("OnlyValueTypeSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///    Ищет локализованную строку, аналогичную Transaction compilation failed. {0}.
         /// </summary>
         public static string TransactionCompilationFailed {

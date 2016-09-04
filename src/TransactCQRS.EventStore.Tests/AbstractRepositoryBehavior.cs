@@ -16,7 +16,7 @@ namespace TransactCQRS.EventStore.Tests
 				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
 				.Build()
 				.Connect();
-			const string keyspace = "test14";
+			const string keyspace = "test_1";
 			session.CreateKeyspaceIfNotExists(keyspace);
 			session.ChangeKeyspace(keyspace);
 			yield return new object[] { new CassandraRepository.Repository(session) };
@@ -27,14 +27,14 @@ namespace TransactCQRS.EventStore.Tests
 		public void ShouldGetCommitedEntity(AbstractRepository repository)
 		{
 			string identity;
-			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
+			using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
 			{
 				var entity = transaction.CreateTestEntity("TestName");
 				entity.MakeOperation1(456);
 				transaction.Commit();
 				identity = entity.GetIdentity();
 			}
-			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
+			using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
 			{
 				var entity = transaction.GetEntity<TestEntity>(identity);
 				Assert.Equal("TestName", entity.Name);
@@ -48,7 +48,7 @@ namespace TransactCQRS.EventStore.Tests
 		public void ShouldSerializeDeserializeTranzaction(AbstractRepository repository)
 		{
 			string identity;
-			using (var transaction = repository.CreateTransaction<TestTransaction>("Started test transaction."))
+			using (var transaction = repository.StartTransaction<TestTransaction>("Started test transaction."))
 			{
 				var entity = transaction.CreateTestEntity("TestName");
 				entity.MakeOperation1(456);
@@ -70,7 +70,7 @@ namespace TransactCQRS.EventStore.Tests
 			string product1Id;
 			string product2Id;
 			string orderId;
-			using (var transaction = repository.CreateTransaction<OrderTransaction>("Create products."))
+			using (var transaction = repository.StartTransaction<OrderTransaction>("Create products."))
 			{
 				var product1 = transaction.CreateProduct("product1");
 				var product2 = transaction.CreateProduct("product2");
@@ -78,7 +78,7 @@ namespace TransactCQRS.EventStore.Tests
 				product1Id = product1.GetIdentity();
 				product2Id = product2.GetIdentity();
 			}
-			using (var transaction = repository.CreateTransaction<OrderTransaction>("Create order."))
+			using (var transaction = repository.StartTransaction<OrderTransaction>("Create order."))
 			{
 				var customer = transaction.CreateCustomer("Customer name");
 				var order = transaction.CreateOrder(customer.GetReference());
@@ -87,7 +87,7 @@ namespace TransactCQRS.EventStore.Tests
 				transaction.Commit();
 				orderId = order.GetIdentity();
 			}
-			using (var transaction = repository.CreateTransaction<OrderTransaction>("Create order."))
+			using (var transaction = repository.StartTransaction<OrderTransaction>("Create order."))
 			{
 				var order = transaction.GetEntity<Order>(orderId);
 				var customer = order.Customer.Load();

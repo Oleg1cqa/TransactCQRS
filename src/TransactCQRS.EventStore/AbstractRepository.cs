@@ -12,9 +12,9 @@ namespace TransactCQRS.EventStore
 	public abstract class AbstractRepository
 	{
 		/// <summary>
-		/// Create new transaction.
+		/// Start new transaction.
 		/// </summary>
-		public virtual TTransaction CreateTransaction<TTransaction>(string description) where TTransaction : AbstractTransaction
+		public TTransaction StartTransaction<TTransaction>(string description) where TTransaction : AbstractTransaction
 		{
 			return AbstractTransaction.Create<TTransaction>(this, description);
 		}

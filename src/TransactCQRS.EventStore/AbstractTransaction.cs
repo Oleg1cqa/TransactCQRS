@@ -50,7 +50,7 @@ namespace TransactCQRS.EventStore
 			return result;
 		}
 
-		public virtual TEntity GetEntity<TEntity>(string identity) where TEntity : class
+		public TEntity GetEntity<TEntity>(string identity) where TEntity : class
 		{
 			TEntity result;
 			object loaded;
@@ -70,7 +70,7 @@ namespace TransactCQRS.EventStore
 			return result;
 		}
 
-		public virtual string GetIdentity(object entity)
+		public string GetIdentity(object entity)
 		{
 			string result;
 			if (!_identities.TryGetValue(entity, out result))
@@ -78,7 +78,7 @@ namespace TransactCQRS.EventStore
 			return result;
 		}
 
-		public virtual void Commit()
+		public void Commit()
 		{
 			Repository.Commit(_eventQueue.Count, MakeCommit);
 		}
@@ -138,7 +138,7 @@ namespace TransactCQRS.EventStore
 				else if (@params[key].IsIReference())
 					@params[key] = @params[key].GetIdentity();
 				else
-					throw new ArgumentOutOfRangeException(nameof(@params), "Only value type parameters supported.");
+					throw new ArgumentOutOfRangeException(nameof(@params), Resources.TextResource.OnlyValueTypeSupported);
 			}
 			return @params;
 		}
