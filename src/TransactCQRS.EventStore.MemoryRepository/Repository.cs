@@ -14,16 +14,8 @@ namespace TransactCQRS.EventStore.MemoryRepository
 		protected override IEnumerable<EventData> LoadEntity(string identity)
 		{
 			return EventQueue.Where(item => item.Root == identity)
-				.Select(item => new EventData
-				{
-					EventName = item.EventName,
-					Identity = item.Identity,
-					Root = item.Root,
-					Transaction = item.Transaction,
-					Params = new Dictionary<string, object>(item.Params)
-				})
-				.OrderBy(item => int.Parse(item.Identity))
-				.ToArray();
+				.Select(EventData.Clone)
+				.OrderBy(item => int.Parse(item.Identity));
 		}
 
 		protected override void Commit(int count, Func<Func<string>, IEnumerable<EventData>> getEvents)
@@ -40,7 +32,6 @@ namespace TransactCQRS.EventStore.MemoryRepository
 			if (events.SelectMany(item => item.Params.Values)
 				.Any(item => item.IsSupportedClass()))
 				throw new ArgumentOutOfRangeException(nameof(events), Resources.TextResource.OnlyValueTypeSupported);
-
 		}
 	}
 }

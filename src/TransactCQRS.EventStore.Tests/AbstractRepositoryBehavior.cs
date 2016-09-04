@@ -2,17 +2,71 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra;
 using Xunit;
 
 namespace TransactCQRS.EventStore.Tests
 {
-	public class ReferenceBehavior
+	public class AbstractRepositoryBehavior
 	{
-		[Fact]
-		public void ShouldReferencedCorrectly()
+		public static IEnumerable<object[]> GetTestRepositories()
 		{
-			var repository = new MemoryRepository.Repository();
+			yield return new object[] { new MemoryRepository.Repository() };
+			var session = Cluster.Builder()
+				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
+				.Build()
+				.Connect();
+			const string keyspace = "test14";
+			session.CreateKeyspaceIfNotExists(keyspace);
+			session.ChangeKeyspace(keyspace);
+			yield return new object[] { new CassandraRepository.Repository(session) };
+		}
 
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldGetCommitedEntity(AbstractRepository repository)
+		{
+			string identity;
+			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
+			{
+				var entity = transaction.CreateTestEntity("TestName");
+				entity.MakeOperation1(456);
+				transaction.Commit();
+				identity = entity.GetIdentity();
+			}
+			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
+			{
+				var entity = transaction.GetEntity<TestEntity>(identity);
+				Assert.Equal("TestName", entity.Name);
+				Assert.Equal("AfterMakeOperation1", entity.State);
+				Assert.Equal(456, entity.Testparametr);
+			}
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldSerializeDeserializeTranzaction(AbstractRepository repository)
+		{
+			string identity;
+			using (var transaction = repository.CreateTransaction<TestTransaction>("Started test transaction."))
+			{
+				var entity = transaction.CreateTestEntity("TestName");
+				entity.MakeOperation1(456);
+				transaction.SetCreator("Oleg");
+				transaction.Commit();
+				identity = transaction.GetIdentity();
+			}
+			using (var transaction = repository.GetTransaction<TestTransaction>(identity))
+			{
+				Assert.Equal("Started test transaction.", transaction.Description);
+				Assert.Equal("Oleg", transaction.Creator);
+			}
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldReferencedCorrectly(AbstractRepository repository)
+		{
 			string product1Id;
 			string product2Id;
 			string orderId;
@@ -42,7 +96,7 @@ namespace TransactCQRS.EventStore.Tests
 				Assert.Equal("product1", product.Name);
 				Assert.Equal("Customer name", customer.Name);
 			}
-		} 
+		}
 
 		public abstract class OrderTransaction : AbstractTransaction
 		{
@@ -59,6 +113,7 @@ namespace TransactCQRS.EventStore.Tests
 		public abstract class Order
 		{
 			private readonly List<Line> _lines = new List<Line>();
+			// ReSharper disable once MemberHidesStaticFromOuterClass
 			public IReference<Customer> Customer { get; }
 			public IEnumerable<Line> Lines => _lines;
 
@@ -84,6 +139,7 @@ namespace TransactCQRS.EventStore.Tests
 
 			public class Line
 			{
+				// ReSharper disable once MemberHidesStaticFromOuterClass
 				public IReference<Product> Product { get; }
 
 				protected Line(IReference<Product> product)

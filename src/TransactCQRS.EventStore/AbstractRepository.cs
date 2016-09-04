@@ -38,6 +38,18 @@ namespace TransactCQRS.EventStore
 			public string Root { get; set; }
 			public string EventName { get; set; }
 			public IDictionary<string, object> Params { get; set; }
+
+			public static EventData Clone(EventData source)
+			{
+				return new EventData
+				{
+					EventName = source.EventName,
+					Identity = source.Identity,
+					Root = source.Root,
+					Transaction = source.Transaction,
+					Params = new Dictionary<string, object>(source.Params)
+				};
+			}
 		}
 	}
 }

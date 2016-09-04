@@ -1,56 +1,11 @@
-﻿// Copyright (c) Starodub Oleg. All Rights Reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
-using System;
+﻿using System;
 using System.Globalization;
 using Xunit;
 
 namespace TransactCQRS.EventStore.Tests
 {
-	public class MemoryRepositoryBehavior
+	public class TransactionBuilderBehavior
 	{
-		[Fact]
-		public void ShouldGetCommitedEntity()
-		{
-			var repository = new MemoryRepository.Repository();
-
-			string identity;
-			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
-			{
-				var entity = transaction.CreateTestEntity("TestName");
-				entity.MakeOperation1(456);
-				transaction.Commit();
-				identity = entity.GetIdentity();
-			}
-			using (var transaction = repository.CreateTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
-			{
-				var entity = transaction.GetEntity<TestEntity>(identity);
-				Assert.Equal("TestName", entity.Name);
-				Assert.Equal("AfterMakeOperation1", entity.State);
-				Assert.Equal(456, entity.Testparametr);
-			}
-		}
-
-		[Fact]
-		public void ShouldSerializeDeserializeTranzaction()
-		{
-			var repository = new MemoryRepository.Repository();
-
-			string identity;
-			using (var transaction = repository.CreateTransaction<TestTransaction>("Started test transaction."))
-			{
-				var entity = transaction.CreateTestEntity("TestName");
-				entity.MakeOperation1(456);
-				transaction.SetCreator("Oleg");
-				transaction.Commit();
-				identity = transaction.GetIdentity();
-			}
-			using (var transaction = repository.GetTransaction<TestTransaction>(identity))
-			{
-				Assert.Equal("Started test transaction.", transaction.Description);
-				Assert.Equal("Oleg", transaction.Creator);
-			}
-		}
-
 		[Fact]
 		public void EventMethodShouldBePublic()
 		{

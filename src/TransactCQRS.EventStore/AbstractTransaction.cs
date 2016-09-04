@@ -61,7 +61,7 @@ namespace TransactCQRS.EventStore
 			}
 			else
 			{
-				var loadedEvents = Repository.LoadEntity(identity);
+				var loadedEvents = Repository.LoadEntity(identity).ToArray();
 				if (!loadedEvents.Any()) throw new ArgumentOutOfRangeException(nameof(identity));
 				result = LoadEntity<TEntity>(loadedEvents);
 				_entities.TryAdd(identity, result);
