@@ -39,8 +39,7 @@ namespace TransactCQRS.EventStore.CassandraRepository
 
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
-			var id = Guid.Parse(identity);
-			return _table.Where(item => item.Root.Equals(id))
+			return _table.Where(item => item.Root.Equals(Guid.Parse(identity)))
 				.OrderBy(item => item.Identity)
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute()
@@ -51,12 +50,12 @@ namespace TransactCQRS.EventStore.CassandraRepository
 		protected override void Commit(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
 		{
 			var startTime = DateTimeOffset.UtcNow;
-			var batch = _session.CreateBatch();
-			batch.Append(getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
-				.Select(EventData.Convert)
-				.Select(_table.Insert));
-			batch.SetConsistencyLevel(ConsistencyLevel.Quorum)
-			.Execute();
+			_session.CreateBatch()
+				.Append(getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
+					.Select(EventData.Convert)
+					.Select(_table.Insert))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute();
 		}
 
 		public class ParamDesc
