@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -101,9 +102,21 @@ namespace TransactCQRS.EventStore.Builders
 						}}
 
 						{_entityClasses}
+
+						protected override bool IsSupportedType(Type type)
+						{{
+							{BuildIsSupportedType()}
+							return false;
+						}}
 					}}
 				}}";
 			return result;
+		}
+
+		private string BuildIsSupportedType()
+		{
+			return Entities.Select(item => $"if(type == typeof({item.Key.ToCsDeclaration()})) return true;")
+				.Aggregate((result, item) => $"{result}\r\n{item}");
 		}
 
 		public void BuildEntity(MethodInfo method, ParamsBuilder paramsBuilder)

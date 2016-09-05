@@ -12,7 +12,9 @@ namespace TransactCQRS.EventStore.CassandraRepository
 	public class Repository : AbstractRepository
 	{
 		private readonly ISession _session;
-		private Table<EventData> _table;
+		private Table<EventData> _eventsTable;
+		private Table<CommittedTransaction> _commitedTransactionTable;
+		private Table<Transaction> _transactionTable;
 
 		public Repository(ISession session)
 		{
@@ -23,26 +25,49 @@ namespace TransactCQRS.EventStore.CassandraRepository
 		private void CheckMetadata()
 		{
 			_session.Execute("CREATE TYPE IF NOT EXISTS param_desc (name text, type_name text, value text)");
+			_session.Execute("CREATE TYPE IF NOT EXISTS event_desc (identity timeuuid, root timeuuid)");
 			_session.UserDefinedTypes.Define(UdtMap.For<ParamDesc>("param_desc")
-					.Map(v => v.TypeName, "type_name")
-					.Map(v => v.Name, "name")
-					.Map(v => v.Value, "value"));
-			var config = new Map<EventData>()
-				.TableName("events_queue")
-				.PartitionKey(item => item.Root)
-				.ClusteringKey(item => item.Identity)
-				.Column(item => item.Params, map => map.AsFrozen());
-			var mappingConfig = new MappingConfiguration().Define(config);
-			_table = new Table<EventData>(_session, mappingConfig);
-			_table.CreateIfNotExists();
+				.Map(v => v.TypeName, "type_name")
+				.Map(v => v.Name, "name")
+				.Map(v => v.Value, "value"));
+			_session.UserDefinedTypes.Define(UdtMap.For<EventDesc>("event_desc")
+				.Map(v => v.Identity, "identity")
+				.Map(v => v.Root, "root"));
+			var mappingConfig = new MappingConfiguration().Define(new Map<EventData>()
+					.TableName("events")
+					.PartitionKey(item => item.Root)
+					.ClusteringKey(item => item.Identity)
+					.Column(item => item.Transaction, map => map.WithSecondaryIndex())
+					.Column(item => item.Params, map => map.AsFrozen()),
+				new Map<CommittedTransaction>()
+					.TableName("commited_transactions")
+					.PartitionKey(item => item.Root)
+					.ClusteringKey(item => item.Transaction),
+				new Map<Transaction>()
+					.TableName("transactions")
+					.PartitionKey(item => item.Identity)
+					.Column(item => item.Events, map => map.AsFrozen()));
+			_eventsTable = new Table<EventData>(_session, mappingConfig);
+			_eventsTable.CreateIfNotExists();
+			_commitedTransactionTable = new Table<CommittedTransaction>(_session, mappingConfig);
+			_commitedTransactionTable.CreateIfNotExists();
+			_transactionTable = new Table<Transaction>(_session, mappingConfig);
+			_transactionTable.CreateIfNotExists();
 		}
 
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
-			return _table.Where(item => item.Root.Equals(Guid.Parse(identity)))
+			var events = _eventsTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
 				.OrderBy(item => item.Identity)
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute()
+				.ToArray();
+			var transactions = _commitedTransactionTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
+				.Select(item => item.Transaction)
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute()
+				.ToArray();
+			return events.Where(item => transactions.Contains(item.Transaction))
 				.Select(EventData.Convert)
 				.ToArray();
 		}
@@ -50,10 +75,49 @@ namespace TransactCQRS.EventStore.CassandraRepository
 		protected override void Commit(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
 		{
 			var startTime = DateTimeOffset.UtcNow;
+			var events = getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
+				.Select(EventData.Convert)
+				.ToArray();
 			_session.CreateBatch()
-				.Append(getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
-					.Select(EventData.Convert)
-					.Select(_table.Insert))
+				.Append(events.Select(_eventsTable.Insert))
+				.Append(new [] {_transactionTable.Insert(new Transaction
+				{
+					Identity = events[0].Transaction,
+					Events = events.Select(item => new EventDesc {Identity = item.Identity, Root = item.Root})
+				})})
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute();
+		}
+
+		protected override void CommitTransaction(string identity)
+		{
+			var transaction = _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute()
+				.Single();
+			_session.CreateBatch()
+				.Append(new[] { _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
+					.Select(item => new Transaction {IsCommited = true})
+					.Update()})
+				.Append(transaction.Events.Select(item => item.Root).Distinct().Select(item => _commitedTransactionTable.Insert(
+					new CommittedTransaction {Root = item, Transaction = transaction.Identity})))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute();
+		}
+
+		protected override void FailTransaction(string identity)
+		{
+			var transaction = _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute()
+				.Single();
+			_session.CreateBatch()
+				.Append(new[] {
+					_transactionTable.Where(item => item.Identity.Equals(transaction.Identity))
+						.Delete()})
+				.Append(transaction.Events.Select(@event => _eventsTable.Where(item => item.Identity.Equals(@event.Identity))
+					.Where(item => item.Root.Equals(@event.Root))
+					.Delete()))
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute();
 		}
@@ -65,8 +129,29 @@ namespace TransactCQRS.EventStore.CassandraRepository
 			public string Value { get; set; }
 		}
 
+		public class EventDesc
+		{
+			public Guid Identity { get; set; }
+			public Guid Root { get; set; }
+		}
+
+		public class Transaction
+		{
+			public bool IsCommited { get; set; }
+			public TimeUuid Identity { get; set; }
+			public IEnumerable<EventDesc> Events { get; set; }
+		}
+
+		public class CommittedTransaction
+		{
+			// ReSharper disable once MemberHidesStaticFromOuterClass
+			public TimeUuid Transaction { get; set; }
+			public TimeUuid Root { get; set; }
+		}
+
 		public new class EventData
 		{
+			// ReSharper disable once MemberHidesStaticFromOuterClass
 			public TimeUuid Transaction { get; set; }
 			public TimeUuid Identity { get; set; }
 			public TimeUuid Root { get; set; }

@@ -9,8 +9,10 @@ namespace TransactCQRS.EventStore
 	/// Base repository class.
 	/// Used  for Transaction managment.
 	/// </summary>
-	public abstract class AbstractRepository
+	public abstract class AbstractRepository : ITransactionTrailer
 	{
+		public ITransactionReceiver Queue { get; set; }
+
 		/// <summary>
 		/// Start new transaction.
 		/// </summary>
@@ -28,8 +30,19 @@ namespace TransactCQRS.EventStore
 		}
 
 		protected internal abstract IEnumerable<EventData> LoadEntity(string identity);
-
 		protected internal abstract void Commit(int count, Func<Func<string>, IEnumerable<EventData>> getEvents);
+		protected abstract void CommitTransaction(string identity);
+		protected abstract void FailTransaction(string identity);
+
+		void ITransactionTrailer.Commit<TTransaction>(TTransaction source)
+		{
+			CommitTransaction(source.GetIdentity());
+		}
+
+		void ITransactionTrailer.Fail<TTransaction>(TTransaction source)
+		{
+			FailTransaction(source.GetIdentity());
+		}
 
 		public class EventData
 		{
@@ -38,18 +51,6 @@ namespace TransactCQRS.EventStore
 			public string Root { get; set; }
 			public string EventName { get; set; }
 			public IDictionary<string, object> Params { get; set; }
-
-			public static EventData Clone(EventData source)
-			{
-				return new EventData
-				{
-					EventName = source.EventName,
-					Identity = source.Identity,
-					Root = source.Root,
-					Transaction = source.Transaction,
-					Params = new Dictionary<string, object>(source.Params)
-				};
-			}
 		}
 	}
 }

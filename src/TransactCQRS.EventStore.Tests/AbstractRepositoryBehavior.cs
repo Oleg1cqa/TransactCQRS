@@ -16,7 +16,7 @@ namespace TransactCQRS.EventStore.Tests
 				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
 				.Build()
 				.Connect();
-			const string keyspace = "test_1";
+			const string keyspace = "test_5";
 			session.CreateKeyspaceIfNotExists(keyspace);
 			session.ChangeKeyspace(keyspace);
 			yield return new object[] { new CassandraRepository.Repository(session) };

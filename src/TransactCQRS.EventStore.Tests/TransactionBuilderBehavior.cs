@@ -9,6 +9,20 @@ namespace TransactCQRS.EventStore.Tests
 	public class TransactionBuilderBehavior
 	{
 		[Fact]
+		public void EntityTypeShouldBeDefined()
+		{
+			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
+			var repository = new MemoryRepository.Repository();
+			using (var transaction = repository.StartTransaction<TestTransaction>("Started EntityTypeShouldBeDefined test."))
+			{
+
+				var ex = Assert.Throws<InvalidOperationException>(() => transaction.GetEntity<NonPublicEvent>("sdfsd"));
+
+				Assert.Equal("Unsupported type of entity.", ex.Message);
+			}
+		}
+
+		[Fact]
 		public void EventMethodShouldBePublic()
 		{
 			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;

@@ -31,6 +31,8 @@ namespace TransactCQRS.EventStore
 		internal static TTransaction Load<TTransaction>(AbstractRepository repository, string identity) where TTransaction : AbstractTransaction
 		{
 			var events = repository.LoadEntity(identity).ToArray();
+			if (!events.Any())
+				throw new ArgumentOutOfRangeException(nameof(identity));
 			var @event = events.First();
 			if (@event.EventName != $"{typeof(TTransaction).Name} started." || @event.Identity != @event.Root || @event.Identity != @event.Transaction)
 				throw new InvalidOperationException(Resources.TextResource.UnsupportedTransactionType);
@@ -52,6 +54,7 @@ namespace TransactCQRS.EventStore
 
 		public TEntity GetEntity<TEntity>(string identity) where TEntity : class
 		{
+			if (!IsSupportedType(typeof(TEntity))) throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
 			TEntity result;
 			object loaded;
 			if (_entities.TryGetValue(identity, out loaded))
@@ -81,6 +84,10 @@ namespace TransactCQRS.EventStore
 		public void Commit()
 		{
 			Repository.Commit(_eventQueue.Count, MakeCommit);
+			if (Repository.Queue != null)
+				Repository.Queue.Send(this);
+			else
+				((ITransactionTrailer)Repository).Commit(this);
 		}
 
 		private IEnumerable<AbstractRepository.EventData> MakeCommit(Func<string> getNextIdentity)
@@ -162,6 +169,8 @@ namespace TransactCQRS.EventStore
 		}
 
 		protected abstract TEntity LoadEntity<TEntity>(IEnumerable<AbstractRepository.EventData> events) where TEntity : class;
+
+		protected abstract bool IsSupportedType(Type type);
 
 		protected abstract AbstractTransaction LoadEvents(IEnumerable<AbstractRepository.EventData> events);
 
