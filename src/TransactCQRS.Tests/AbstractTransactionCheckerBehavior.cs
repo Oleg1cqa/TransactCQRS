@@ -17,7 +17,7 @@ namespace TransactCQRS.Tests
 				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
 				.Build()
 				.Connect();
-			const string keyspace = "test_5";
+			const string keyspace = "test_6";
 			session.CreateKeyspaceIfNotExists(keyspace);
 			session.ChangeKeyspace(keyspace);
 			yield return new object[] { new EventStore.CassandraRepository.Repository(session) };
@@ -40,7 +40,7 @@ namespace TransactCQRS.Tests
 
 		[Theory]
 		[MemberData(nameof(GetTestRepositories))]
-		public void ShouldFailOnReadTransaction(AbstractRepository repository)
+		public void ShouldFailOnReadFailedTransaction(AbstractRepository repository)
 		{
 			repository.Queue = new TransactionChecker(repository, false);
 			string transactionId;
@@ -138,6 +138,5 @@ namespace TransactCQRS.Tests
 				Name = name;
 			}
 		}
-
 	}
 }

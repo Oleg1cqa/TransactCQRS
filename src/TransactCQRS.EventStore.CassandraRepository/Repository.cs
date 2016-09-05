@@ -37,7 +37,6 @@ namespace TransactCQRS.EventStore.CassandraRepository
 					.TableName("events")
 					.PartitionKey(item => item.Root)
 					.ClusteringKey(item => item.Identity)
-					.Column(item => item.Transaction, map => map.WithSecondaryIndex())
 					.Column(item => item.Params, map => map.AsFrozen()),
 				new Map<CommittedTransaction>()
 					.TableName("commited_transactions")
