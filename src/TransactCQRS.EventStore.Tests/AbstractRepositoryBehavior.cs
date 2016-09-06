@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Starodub Oleg. All Rights Reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra;
@@ -20,6 +21,36 @@ namespace TransactCQRS.EventStore.Tests
 			session.CreateKeyspaceIfNotExists(keyspace);
 			session.ChangeKeyspace(keyspace);
 			yield return new object[] { new CassandraRepository.Repository(session) };
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldReadCommittedTransaction(AbstractRepository repository)
+		{
+			repository.OnTransactionSaved = (item) => item.Commit();
+			string transactionId;
+			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
+			{
+				transaction.CreateCustomer("TestName");
+				transaction.Save();
+				transactionId = transaction.GetIdentity();
+			}
+			Assert.NotNull(repository.GetTransaction<OrderTransaction>(transactionId));
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldFailOnReadFailedTransaction(AbstractRepository repository)
+		{
+			repository.OnTransactionSaved = (item) => item.Rollback();
+			string transactionId;
+			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
+			{
+				transaction.CreateCustomer("TestName");
+				transaction.Save();
+				transactionId = transaction.GetIdentity();
+			}
+			Assert.Throws<ArgumentOutOfRangeException>(() => repository.GetTransaction<OrderTransaction>(transactionId));
 		}
 
 		[Theory]

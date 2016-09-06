@@ -22,15 +22,16 @@ namespace TransactCQRS.EventStore
 		/// <summary>
 		/// Description of transaction.
 		/// </summary>
-		public string Description { get; protected set; }
-		public AbstractRepository Repository { get; protected set; }
+		public abstract string Description { get;}
+		public abstract AbstractRepository Repository { get;}
+		public abstract Type BaseType { get; }
 
 		/// <summary>
 		/// Load transaction from store.
 		/// </summary>
 		internal static TTransaction Load<TTransaction>(AbstractRepository repository, string identity) where TTransaction : AbstractTransaction
 		{
-			var events = repository.LoadEntity(identity).ToArray();
+			var events = repository.LoadTransaction(identity).ToArray();
 			if (!events.Any())
 				throw new ArgumentOutOfRangeException(nameof(identity));
 			var @event = events.First();

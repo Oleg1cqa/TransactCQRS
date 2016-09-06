@@ -11,6 +11,13 @@ namespace TransactCQRS.EventStore.MemoryRepository
 		private List<EventData> EventQueue { get; } = new List<EventData>();
 		private int _maxIdentity;
 
+		protected override IEnumerable<AbstractRepository.EventData> LoadTransaction(string identity)
+		{
+			return EventQueue.Where(item => item.Root == identity)
+				.Select(EventData.Clone)
+				.OrderBy(item => int.Parse(item.Identity));
+		}
+
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
 			return EventQueue.Where(item => item.Root == identity)

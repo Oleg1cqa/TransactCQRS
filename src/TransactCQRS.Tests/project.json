@@ -15,6 +15,7 @@
     "TransactCQRS.EventStore": "1.0.0-*",
     "TransactCQRS.EventStore.CassandraRepository": "1.0.0-*",
     "TransactCQRS.EventStore.MemoryRepository": "1.0.0-*",
+    "TransactCQRS.RabbitMqConnector": "1.0.0-*",
     "xunit": "2.2.0-beta2-build3300"
   },
 

@@ -54,6 +54,16 @@ namespace TransactCQRS.EventStore.CassandraRepository
 			_transactionTable.CreateIfNotExists();
 		}
 
+		protected override IEnumerable<AbstractRepository.EventData> LoadTransaction(string identity)
+		{
+			return _eventsTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
+				.OrderBy(item => item.Identity)
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute()
+				.Select(EventData.Convert)
+				.ToArray();
+		}
+
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
 			var events = _eventsTable.Where(item => item.Root.Equals(Guid.Parse(identity)))

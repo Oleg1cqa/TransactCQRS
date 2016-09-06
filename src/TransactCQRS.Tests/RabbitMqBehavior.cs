@@ -1,17 +1,31 @@
 ﻿// Copyright (c) Starodub Oleg. All Rights Reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cassandra;
+using RabbitMQ.Client;
+using TransactCQRS.RabbitMqConnector;
 using Xunit;
+using TransactCQRS.EventStore;
 
-namespace TransactCQRS.EventStore.Tests
+namespace TransactCQRS.Tests
 {
-	public class TransactionQueueBehavior
+	public class RabbitMqBehavior
 	{
+		private static IModel CreateQueue(string exchangeName, string queueName, string routingKey)
+		{
+			var result = new ConnectionFactory { HostName = "localhost" }
+				.CreateConnection()
+				.CreateModel();
+			result.ExchangeDeclare(exchangeName, ExchangeType.Direct);
+			result.QueueDeclare(queueName, false, false, false, null);
+			result.QueueBind(queueName, exchangeName, routingKey, null);
+			return result;
+		}
+
 		public static IEnumerable<object[]> GetTestRepositories()
 		{
-			yield return new object[] { new MemoryRepository.Repository() };
+			yield return new object[] { new EventStore.MemoryRepository.Repository() };
 			var session = Cluster.Builder()
 				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
 				.Build()
@@ -19,41 +33,48 @@ namespace TransactCQRS.EventStore.Tests
 			const string keyspace = "test_6";
 			session.CreateKeyspaceIfNotExists(keyspace);
 			session.ChangeKeyspace(keyspace);
-			yield return new object[] { new CassandraRepository.Repository(session) };
+			yield return new object[] { new EventStore.CassandraRepository.Repository(session) };
 		}
 
 		[Theory]
 		[MemberData(nameof(GetTestRepositories))]
-		public void ShouldReadCommittedTransaction(AbstractRepository repository)
+		public void ShouldCorrectGetCommitedTransaction(AbstractRepository repository)
 		{
-			repository.OnTransactionSaved = (item) => item.Commit();
-			string transactionId;
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
+			const string exchangeName = "Test exchange";
+			const string queueName = "Test queue Name";
+			const string routingKey = "routingKey";
+			using (var queue = CreateQueue(exchangeName, queueName, routingKey))
 			{
-				transaction.CreateCustomer("TestName");
-				transaction.Save();
-				transactionId = transaction.GetIdentity();
-			}
-			Assert.NotNull(repository.GetTransaction<OrderTransaction>(transactionId));
-		}
+				var finished = false;
+				var receiver = new TransactionReceiver(repository, queue, queueName)
+				{
+					OnReceived = item =>
+					{
+						finished = true;
+						item.Commit();
+					}
+				};
+				repository.OnTransactionSaved = new TransactionSender(queue, exchangeName, routingKey).Send;
+				string transactionId;
+				using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
+				{
+					transaction.CreateCustomer("TestName");
+					transaction.Save();
+					transactionId = transaction.GetIdentity();
+				}
+				SpinWait.SpinUntil(() => finished, 5000);
 
-		[Theory]
-		[MemberData(nameof(GetTestRepositories))]
-		public void ShouldFailOnReadFailedTransaction(AbstractRepository repository)
-		{
-			repository.OnTransactionSaved = (item) => item.Rollback();
-			string transactionId;
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
-			{
-				transaction.CreateCustomer("TestName");
-				transaction.Save();
-				transactionId = transaction.GetIdentity();
+				Assert.True(finished);
+				Assert.NotNull(repository.GetTransaction<OrderTransaction>(transactionId));
+
+				receiver.Cancel();
 			}
-			Assert.Throws<ArgumentOutOfRangeException>(() => repository.GetTransaction<OrderTransaction>(transactionId));
 		}
 
 		public abstract class OrderTransaction : AbstractTransaction
 		{
+			public bool IsCommited { get; internal set; }
+
 			[Event]
 			public abstract Order CreateOrder(IReference<Customer> customer);
 

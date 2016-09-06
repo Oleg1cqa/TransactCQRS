@@ -29,6 +29,7 @@ namespace TransactCQRS.EventStore
 			return AbstractTransaction.Load<TTransaction>(this, identity);
 		}
 
+		protected internal abstract IEnumerable<EventData> LoadTransaction(string identity);
 		protected internal abstract IEnumerable<EventData> LoadEntity(string identity);
 		protected internal abstract void SaveTransaction(int eventCount, Func<Func<string>, IEnumerable<EventData>> getEvents);
 		protected internal abstract void CommitTransaction(string identity);

@@ -63,6 +63,10 @@ namespace TransactCQRS.EventStore.Builders
 						public bool IsLoaded => true;
 						public string Identity => GetIdentity(this);
 
+						public override string Description {{ get;}}
+						public override AbstractRepository Repository {{ get;}}
+						public override Type BaseType {{ get; }} = typeof({baseTypeName});
+
 						public {$"{ClassName}"}(AbstractRepository repository, string description)
 						{{
 							Repository = repository;

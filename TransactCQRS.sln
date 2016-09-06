@@ -24,6 +24,8 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS", "src\Transac
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.Tests", "src\TransactCQRS.Tests\TransactCQRS.Tests.xproj", "{12A83000-2B3C-4D02-A8FB-058DF3111A37}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.RabbitMqConnector", "src\TransactCQRS.RabbitMqConnector\TransactCQRS.RabbitMqConnector.xproj", "{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{12A83000-2B3C-4D02-A8FB-058DF3111A37}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{12A83000-2B3C-4D02-A8FB-058DF3111A37}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{12A83000-2B3C-4D02-A8FB-058DF3111A37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,5 +71,6 @@ Global
 		{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 		{D297425E-E5C3-40AF-9589-9153164CE03C} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 		{12A83000-2B3C-4D02-A8FB-058DF3111A37} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
+		{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 	EndGlobalSection
 EndGlobal
