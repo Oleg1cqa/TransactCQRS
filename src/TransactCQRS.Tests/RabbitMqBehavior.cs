@@ -12,11 +12,10 @@ namespace TransactCQRS.Tests
 {
 	public class RabbitMqBehavior
 	{
-		private static IModel CreateQueue(string exchangeName, string queueName, string routingKey)
+		private static IModel CreateQueue(string exchangeName, string queueName, string routingKey, out IConnection connection)
 		{
-			var result = new ConnectionFactory { HostName = "localhost" }
-				.CreateConnection()
-				.CreateModel();
+			connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection();
+			var result = connection.CreateModel();
 			result.ExchangeDeclare(exchangeName, ExchangeType.Direct);
 			result.QueueDeclare(queueName, false, false, false, null);
 			result.QueueBind(queueName, exchangeName, routingKey, null);
@@ -43,7 +42,8 @@ namespace TransactCQRS.Tests
 			const string exchangeName = "Test exchange";
 			const string queueName = "Test queue Name";
 			const string routingKey = "routingKey";
-			using (var queue = CreateQueue(exchangeName, queueName, routingKey))
+			IConnection connection;
+			using (var queue = CreateQueue(exchangeName, queueName, routingKey, out connection))
 			{
 				var finished = false;
 				var receiver = new TransactionReceiver(repository, queue, queueName)
@@ -68,6 +68,8 @@ namespace TransactCQRS.Tests
 				Assert.NotNull(repository.GetTransaction<OrderTransaction>(transactionId));
 
 				receiver.Cancel();
+				queue.Close(200, "Goodbye");
+				connection.Close();
 			}
 		}
 
