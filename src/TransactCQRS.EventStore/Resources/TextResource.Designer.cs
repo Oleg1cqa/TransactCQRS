@@ -123,6 +123,15 @@ namespace TransactCQRS.EventStore.Resources {
         }
         
         /// <summary>
+        ///    Ищет локализованную строку, аналогичную Transaction now is in read-only state..
+        /// </summary>
+        public static string TransactionReadOnly {
+            get {
+                return ResourceManager.GetString("TransactionReadOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///    Ищет локализованную строку, аналогичную Unsupported type of transaction detected..
         /// </summary>
         public static string UnsupportedTransactionType {

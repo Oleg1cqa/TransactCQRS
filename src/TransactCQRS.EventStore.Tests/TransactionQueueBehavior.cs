@@ -3,16 +3,15 @@
 using System;
 using System.Collections.Generic;
 using Cassandra;
-using TransactCQRS.EventStore;
 using Xunit;
 
-namespace TransactCQRS.Tests
+namespace TransactCQRS.EventStore.Tests
 {
-	public class AbstractTransactionCheckerBehavior
+	public class TransactionQueueBehavior
 	{
 		public static IEnumerable<object[]> GetTestRepositories()
 		{
-			yield return new object[] { new EventStore.MemoryRepository.Repository() };
+			yield return new object[] { new MemoryRepository.Repository() };
 			var session = Cluster.Builder()
 				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
 				.Build()
@@ -20,19 +19,19 @@ namespace TransactCQRS.Tests
 			const string keyspace = "test_6";
 			session.CreateKeyspaceIfNotExists(keyspace);
 			session.ChangeKeyspace(keyspace);
-			yield return new object[] { new EventStore.CassandraRepository.Repository(session) };
+			yield return new object[] { new CassandraRepository.Repository(session) };
 		}
 
 		[Theory]
 		[MemberData(nameof(GetTestRepositories))]
 		public void ShouldReadCommittedTransaction(AbstractRepository repository)
 		{
-			repository.Queue = new TransactionChecker(repository, true);
+			repository.OnTransactionSaved = (item) => item.Commit();
 			string transactionId;
 			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
 			{
 				transaction.CreateCustomer("TestName");
-				transaction.Commit();
+				transaction.Save();
 				transactionId = transaction.GetIdentity();
 			}
 			Assert.NotNull(repository.GetTransaction<OrderTransaction>(transactionId));
@@ -42,30 +41,15 @@ namespace TransactCQRS.Tests
 		[MemberData(nameof(GetTestRepositories))]
 		public void ShouldFailOnReadFailedTransaction(AbstractRepository repository)
 		{
-			repository.Queue = new TransactionChecker(repository, false);
+			repository.OnTransactionSaved = (item) => item.Rollback();
 			string transactionId;
 			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
 			{
 				transaction.CreateCustomer("TestName");
-				transaction.Commit();
+				transaction.Save();
 				transactionId = transaction.GetIdentity();
 			}
 			Assert.Throws<ArgumentOutOfRangeException>(() => repository.GetTransaction<OrderTransaction>(transactionId));
-		}
-
-		public class TransactionChecker : AbstractTransactionChecker
-		{
-			private readonly bool _result;
-
-			public TransactionChecker(ITransactionTrailer trailer, bool result) : base(trailer)
-			{
-				_result = result;
-			}
-
-			public override bool CheckTransaction<TTransaction>(TTransaction source)
-			{
-				return _result;
-			}
 		}
 
 		public abstract class OrderTransaction : AbstractTransaction

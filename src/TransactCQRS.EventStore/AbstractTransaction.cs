@@ -36,8 +36,10 @@ namespace TransactCQRS.EventStore
 			var @event = events.First();
 			if (@event.EventName != $"{typeof(TTransaction).Name} started." || @event.Identity != @event.Root || @event.Identity != @event.Transaction)
 				throw new InvalidOperationException(Resources.TextResource.UnsupportedTransactionType);
-			return (TTransaction)TransactionBuilder.CreateInstance<TTransaction>(repository, (string)@event.Params["description"])
+			var result = (TTransaction)TransactionBuilder.CreateInstance<TTransaction>(repository, (string)@event.Params["description"])
 				.LoadEvents(events.Skip(1));
+			result.SetIdentity(result, identity);
+			return result;
 		}
 
 		/// <summary>
@@ -81,13 +83,26 @@ namespace TransactCQRS.EventStore
 			return result;
 		}
 
+		public void Save()
+		{
+			if (_eventQueue == null)
+				throw new InvalidOperationException(Resources.TextResource.TransactionReadOnly);
+			Repository.SaveTransaction(_eventQueue.Count, MakeCommit);
+			Interlocked.Exchange(ref _eventQueue, null);
+			Repository.OnTransactionSaved?.Invoke(this);
+		}
+
 		public void Commit()
 		{
-			Repository.Commit(_eventQueue.Count, MakeCommit);
-			if (Repository.Queue != null)
-				Repository.Queue.Send(this);
-			else
-				((ITransactionTrailer)Repository).Commit(this);
+			string identity;
+			if (!_identities.TryGetValue(this, out identity))
+				Save();
+			Repository.CommitTransaction(GetIdentity(this));
+		}
+
+		public void Rollback()
+		{
+			Repository.RollbackTransaction(GetIdentity(this));
 		}
 
 		private IEnumerable<AbstractRepository.EventData> MakeCommit(Func<string> getNextIdentity)
@@ -162,12 +177,6 @@ namespace TransactCQRS.EventStore
 			}
 		}
 
-		internal void SetIdentity(object @event, string identity)
-		{
-			_identities.TryAdd(@event, identity);
-			_entities.TryAdd(identity, @event);
-		}
-
 		protected abstract TEntity LoadEntity<TEntity>(IEnumerable<AbstractRepository.EventData> events) where TEntity : class;
 
 		protected abstract bool IsSupportedType(Type type);
@@ -177,6 +186,12 @@ namespace TransactCQRS.EventStore
 		protected void AddEvent(object root, string eventName, IDictionary<string, object> @params)
 		{
 			_eventQueue.Enqueue(new EventData { Root = root, EventName = eventName, Params = @params });
+		}
+
+		private void SetIdentity(object @event, string identity)
+		{
+			_identities.TryAdd(@event, identity);
+			_entities.TryAdd(identity, @event);
 		}
 
 		private class EventData

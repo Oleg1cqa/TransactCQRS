@@ -71,7 +71,7 @@ namespace TransactCQRS.EventStore.CassandraRepository
 				.ToArray();
 		}
 
-		protected override void Commit(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
+		protected override void SaveTransaction(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
 		{
 			var startTime = DateTimeOffset.UtcNow;
 			var events = getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
@@ -90,10 +90,7 @@ namespace TransactCQRS.EventStore.CassandraRepository
 
 		protected override void CommitTransaction(string identity)
 		{
-			var transaction = _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
-				.SetConsistencyLevel(ConsistencyLevel.Quorum)
-				.Execute()
-				.Single();
+			var transaction = LoadAndCheckTransaction(Guid.Parse(identity));
 			_session.CreateBatch()
 				.Append(new[] { _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
 					.Select(item => new Transaction {IsCommited = true})
@@ -104,21 +101,28 @@ namespace TransactCQRS.EventStore.CassandraRepository
 				.Execute();
 		}
 
-		protected override void FailTransaction(string identity)
+		protected override void RollbackTransaction(string identity)
 		{
-			var transaction = _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
-				.SetConsistencyLevel(ConsistencyLevel.Quorum)
-				.Execute()
-				.Single();
+			var transaction = LoadAndCheckTransaction(Guid.Parse(identity));
 			_session.CreateBatch()
-				.Append(new[] {
-					_transactionTable.Where(item => item.Identity.Equals(transaction.Identity))
-						.Delete()})
+				.Append(new[] {_transactionTable.Where(item => item.Identity.Equals(transaction.Identity))
+					.Delete()})
 				.Append(transaction.Events.Select(@event => _eventsTable.Where(item => item.Identity.Equals(@event.Identity))
 					.Where(item => item.Root.Equals(@event.Root))
 					.Delete()))
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute();
+		}
+
+		private Transaction LoadAndCheckTransaction(Guid identity)
+		{
+			var result = _transactionTable.Where(item => item.Identity.Equals(identity))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute()
+				.Single();
+			if (result.IsCommited)
+				throw new InvalidOperationException(Resources.TextResource.TransactionAlreadyCommited);
+			return result;
 		}
 
 		public class ParamDesc

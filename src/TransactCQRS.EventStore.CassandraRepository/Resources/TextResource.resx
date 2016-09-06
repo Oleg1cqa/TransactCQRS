@@ -117,34 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="UnsupportedTypeOfEntity" xml:space="preserve">
-    <value>Неподдерживаемый тип сущности.</value>
-  </data>
-  <data name="UnsupportedTransactionType" xml:space="preserve">
-    <value>Обнаружен неподдерживаемый тип транзакции.</value>
-  </data>
-  <data name="EntityHaventIdentity" xml:space="preserve">
-    <value>У сущности нет идентификатора в рамках данной транзакции.</value>
-  </data>
-  <data name="MethodShouldBePublic" xml:space="preserve">
-    <value>Метод события "{0}" должен быть публичным.</value>
-  </data>
-  <data name="MethodShouldBeVirtual" xml:space="preserve">
-    <value>Метод события "{0}" должен быть виртуальным.</value>
-  </data>
-  <data name="MethodShouldReturnClass" xml:space="preserve">
-    <value>Метод события "{0}" должен возвращать класс.</value>
-  </data>
-  <data name="MethodShouldReturnVoid" xml:space="preserve">
-    <value>Метод события "{0}" не должен возвращать значение.</value>
-  </data>
-  <data name="TransactionCompilationFailed" xml:space="preserve">
-    <value>Компиляция транзакции провалилась. "{0}"</value>
-  </data>
-  <data name="OnlyValueTypeSupported" xml:space="preserve">
-    <value>Поддерживается только тип-значение.</value>
-  </data>
-  <data name="TransactionReadOnly" xml:space="preserve">
-    <value>Транзакция доступна только для чтения.</value>
+  <data name="TransactionAlreadyCommited" xml:space="preserve">
+    <value>Transaction already commited.</value>
   </data>
 </root>

@@ -19,7 +19,7 @@ namespace TransactCQRS.EventStore.MemoryRepository
 				.OrderBy(item => int.Parse(item.Identity));
 		}
 
-		protected override void Commit(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
+		protected override void SaveTransaction(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
 		{
 			var startIdentity = _maxIdentity;
 			_maxIdentity += count;
@@ -37,7 +37,7 @@ namespace TransactCQRS.EventStore.MemoryRepository
 				.ForEach(item => item.TransactionCommitted = true);
 		}
 
-		protected override void FailTransaction(string identity)
+		protected override void RollbackTransaction(string identity)
 		{
 			EventQueue.RemoveAll(item => item.Transaction == identity);
 		}

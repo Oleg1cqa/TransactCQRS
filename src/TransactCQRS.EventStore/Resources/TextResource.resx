@@ -138,6 +138,9 @@
   <data name="TransactionCompilationFailed" xml:space="preserve">
     <value>Transaction compilation failed. {0}</value>
   </data>
+  <data name="TransactionReadOnly" xml:space="preserve">
+    <value>Transaction now is in read-only state.</value>
+  </data>
   <data name="UnsupportedTransactionType" xml:space="preserve">
     <value>Unsupported type of transaction detected.</value>
   </data>
