@@ -13,8 +13,8 @@ namespace TransactCQRS.EventStore.CassandraRepository
 	{
 		private readonly ISession _session;
 		private Table<EventData> _eventsTable;
-		private Table<CommittedTransaction> _commitedTransactionTable;
 		private Table<Transaction> _transactionTable;
+		private Table<WaitingTransaction> _waitingTransactionTable;
 
 		public Repository(ISession session)
 		{
@@ -25,36 +25,40 @@ namespace TransactCQRS.EventStore.CassandraRepository
 		private void CheckMetadata()
 		{
 			_session.Execute("CREATE TYPE IF NOT EXISTS param_desc (name text, type_name text, value text)");
-			_session.Execute("CREATE TYPE IF NOT EXISTS event_desc (identity timeuuid, root timeuuid)");
 			_session.UserDefinedTypes.Define(UdtMap.For<ParamDesc>("param_desc")
 				.Map(v => v.TypeName, "type_name")
 				.Map(v => v.Name, "name")
 				.Map(v => v.Value, "value"));
-			_session.UserDefinedTypes.Define(UdtMap.For<EventDesc>("event_desc")
-				.Map(v => v.Identity, "identity")
-				.Map(v => v.Root, "root"));
 			var mappingConfig = new MappingConfiguration().Define(new Map<EventData>()
 					.TableName("events")
 					.PartitionKey(item => item.Root)
 					.ClusteringKey(item => item.Identity)
 					.Column(item => item.Params, map => map.AsFrozen()),
-				new Map<CommittedTransaction>()
-					.TableName("commited_transactions")
-					.PartitionKey(item => item.Root)
-					.ClusteringKey(item => item.Transaction),
 				new Map<Transaction>()
 					.TableName("transactions")
 					.PartitionKey(item => item.Identity)
-					.Column(item => item.Events, map => map.AsFrozen()));
+					.ClusteringKey(item => item.Event),
+				new Map<WaitingTransaction>()
+					.TableName("waiting_transactions")
+					.PartitionKey(item => item.Identity));
 			_eventsTable = new Table<EventData>(_session, mappingConfig);
 			_eventsTable.CreateIfNotExists();
-			_commitedTransactionTable = new Table<CommittedTransaction>(_session, mappingConfig);
-			_commitedTransactionTable.CreateIfNotExists();
 			_transactionTable = new Table<Transaction>(_session, mappingConfig);
 			_transactionTable.CreateIfNotExists();
+			_waitingTransactionTable = new Table<WaitingTransaction>(_session, mappingConfig);
+			_waitingTransactionTable.CreateIfNotExists();
 		}
 
-		protected override IEnumerable<AbstractRepository.EventData> LoadTransaction(string identity)
+		protected override IEnumerable<TransactionData> LoadWaitingTransactions()
+		{
+			return _waitingTransactionTable
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute()
+				.Select(Convert)
+				.ToArray();
+		}
+
+		protected override IEnumerable<AbstractRepository.EventData> LoadTransactionEvents(string identity)
 		{
 			return _eventsTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
 				.OrderBy(item => item.Identity)
@@ -66,17 +70,11 @@ namespace TransactCQRS.EventStore.CassandraRepository
 
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
-			var events = _eventsTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
+			return _eventsTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
 				.OrderBy(item => item.Identity)
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute()
-				.ToArray();
-			var transactions = _commitedTransactionTable.Where(item => item.Root.Equals(Guid.Parse(identity)))
-				.Select(item => item.Transaction)
-				.SetConsistencyLevel(ConsistencyLevel.Quorum)
-				.Execute()
-				.ToArray();
-			return events.Where(item => transactions.Contains(item.Transaction))
+				.Where(item => item.Committed)
 				.Select(EventData.Convert)
 				.ToArray();
 		}
@@ -85,54 +83,73 @@ namespace TransactCQRS.EventStore.CassandraRepository
 		{
 			var startTime = DateTimeOffset.UtcNow;
 			var events = getEvents(() => TimeUuid.NewId(startTime = startTime.AddTicks(1)).ToString())
-				.Select(EventData.Convert)
 				.ToArray();
+			var firstEevent = events.First();
 			_session.CreateBatch()
-				.Append(events.Select(_eventsTable.Insert))
-				.Append(new [] {_transactionTable.Insert(new Transaction
+				.Append(events.Select(EventData.Convert).Select(_eventsTable.Insert))
+				.Append(events.Select(Transaction.Convert).Select(_transactionTable.Insert))
+				.Append(new CqlCommand[]
 				{
-					Identity = events[0].Transaction,
-					Events = events.Select(item => new EventDesc {Identity = item.Identity, Root = item.Root})
-				})})
+					_waitingTransactionTable.Insert(new WaitingTransaction
+					{
+						Identity = Guid.Parse(firstEevent.Transaction),
+						EventName = firstEevent.EventName
+					})
+				})
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute();
 		}
 
 		protected override void CommitTransaction(string identity)
 		{
-			var transaction = LoadAndCheckTransaction(Guid.Parse(identity));
+			var transaction = Guid.Parse(identity);
+			CheckTransactionWait(transaction);
+			var eventsList = _transactionTable.Where(item => item.Identity.Equals(transaction))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute();
 			_session.CreateBatch()
-				.Append(new[] { _transactionTable.Where(item => item.Identity.Equals(Guid.Parse(identity)))
-					.Select(item => new Transaction {IsCommited = true})
-					.Update()})
-				.Append(transaction.Events.Select(item => item.Root).Distinct().Select(item => _commitedTransactionTable.Insert(
-					new CommittedTransaction {Root = item, Transaction = transaction.Identity})))
+				.Append(new []{_waitingTransactionTable.Where(item => item.Identity.Equals(transaction)).Delete()})
+				.Append(eventsList.Select(@event => _eventsTable.Where(item => item.Identity.Equals(@event.Event))
+					.Where(item => item.Root.Equals(@event.Root))
+					.Select(item => new EventData { Committed = true })
+					.Update()))
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute();
 		}
 
 		protected override void RollbackTransaction(string identity)
 		{
-			var transaction = LoadAndCheckTransaction(Guid.Parse(identity));
+			var transaction = Guid.Parse(identity);
+			CheckTransactionWait(transaction);
+			var eventList = _transactionTable.Where(item => item.Identity.Equals(transaction))
+				.SetConsistencyLevel(ConsistencyLevel.Quorum)
+				.Execute();
 			_session.CreateBatch()
-				.Append(new[] {_transactionTable.Where(item => item.Identity.Equals(transaction.Identity))
-					.Delete()})
-				.Append(transaction.Events.Select(@event => _eventsTable.Where(item => item.Identity.Equals(@event.Identity))
+				.Append(new CqlCommand[]
+				{
+					_transactionTable.Where(item => item.Identity.Equals(transaction)).Delete(),
+					_waitingTransactionTable.Where(item => item.Identity.Equals(transaction)).Delete()
+				})
+				.Append(eventList.Select(@event => _eventsTable.Where(item => item.Identity.Equals(@event.Event))
 					.Where(item => item.Root.Equals(@event.Root))
 					.Delete()))
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute();
 		}
 
-		private Transaction LoadAndCheckTransaction(Guid identity)
+		private void CheckTransactionWait(Guid transaction)
 		{
-			var result = _transactionTable.Where(item => item.Identity.Equals(identity))
+			var isWaiting = _waitingTransactionTable.Where(item => item.Identity.Equals(transaction))
 				.SetConsistencyLevel(ConsistencyLevel.Quorum)
 				.Execute()
-				.Single();
-			if (result.IsCommited)
+				.Any();
+			if (!isWaiting)
 				throw new InvalidOperationException(Resources.TextResource.TransactionAlreadyCommited);
-			return result;
+		}
+
+		private static TransactionData Convert(WaitingTransaction source)
+		{
+			return new TransactionData { Identity = source.Identity.ToString(), EventName = source.EventName };
 		}
 
 		public class ParamDesc
@@ -142,24 +159,27 @@ namespace TransactCQRS.EventStore.CassandraRepository
 			public string Value { get; set; }
 		}
 
-		public class EventDesc
-		{
-			public Guid Identity { get; set; }
-			public Guid Root { get; set; }
-		}
-
 		public class Transaction
 		{
-			public bool IsCommited { get; set; }
 			public TimeUuid Identity { get; set; }
-			public IEnumerable<EventDesc> Events { get; set; }
+			public TimeUuid Event { get; set; }
+			public TimeUuid Root { get; set; }
+
+			internal static Transaction Convert(AbstractRepository.EventData source)
+			{
+				return new Transaction
+				{
+					Event = Guid.Parse(source.Identity),
+					Identity = Guid.Parse(source.Transaction),
+					Root = Guid.Parse(source.Root)
+				};
+			}
 		}
 
-		public class CommittedTransaction
+		public class WaitingTransaction
 		{
-			// ReSharper disable once MemberHidesStaticFromOuterClass
-			public TimeUuid Transaction { get; set; }
-			public TimeUuid Root { get; set; }
+			public TimeUuid Identity { get; set; }
+			public string EventName { get; set; }
 		}
 
 		public new class EventData
@@ -170,6 +190,7 @@ namespace TransactCQRS.EventStore.CassandraRepository
 			public TimeUuid Root { get; set; }
 			public string EventName { get; set; }
 			public IEnumerable<ParamDesc> Params { get; set; }
+			public bool Committed { get; set; }
 
 			public static AbstractRepository.EventData Convert(EventData source)
 			{

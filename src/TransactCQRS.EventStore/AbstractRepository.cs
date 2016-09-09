@@ -2,6 +2,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using TransactCQRS.EventStore.Builders;
 
 namespace TransactCQRS.EventStore
 {
@@ -18,7 +20,7 @@ namespace TransactCQRS.EventStore
 		/// </summary>
 		public TTransaction StartTransaction<TTransaction>(string description) where TTransaction : AbstractTransaction
 		{
-			return AbstractTransaction.Create<TTransaction>(this, description);
+			return TransactionFactory.Create<TTransaction>(this, description);
 		}
 
 		/// <summary>
@@ -26,14 +28,35 @@ namespace TransactCQRS.EventStore
 		/// </summary>
 		public TTransaction GetTransaction<TTransaction>(string identity) where TTransaction : AbstractTransaction
 		{
-			return AbstractTransaction.Load<TTransaction>(this, identity);
+			var events = LoadTransactionEvents(identity).ToArray();
+			if (!events.Any())
+				throw new ArgumentOutOfRangeException(nameof(identity));
+			return TransactionFactory.Load<TTransaction>(this, events);
 		}
 
-		protected internal abstract IEnumerable<EventData> LoadTransaction(string identity);
+		/// <summary>
+		/// Get non committed transactions.
+		/// </summary>
+		public IEnumerable<IReference<AbstractTransaction>> GetWaitingTransactions()
+		{
+			var rootEvents = TransactionFactory.GetRootEventNames();
+			return LoadWaitingTransactions()
+				.Where(item => rootEvents.Contains(item.EventName))
+				.Select(item => TransactionFactory.CreateLazyLoad(this, item, () => LoadTransactionEvents(item.Identity)));
+		}
+
+		protected abstract IEnumerable<TransactionData> LoadWaitingTransactions();
+		protected internal abstract IEnumerable<EventData> LoadTransactionEvents(string identity);
 		protected internal abstract IEnumerable<EventData> LoadEntity(string identity);
 		protected internal abstract void SaveTransaction(int eventCount, Func<Func<string>, IEnumerable<EventData>> getEvents);
 		protected internal abstract void CommitTransaction(string identity);
 		protected internal abstract void RollbackTransaction(string identity);
+
+		protected internal class TransactionData
+		{
+			public string Identity { get; set; }
+			public string EventName { get; set; }
+		}
 
 		public class EventData
 		{

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
-using TransactCQRS.EventStore.Builders;
 
 namespace TransactCQRS.EventStore
 {
@@ -26,39 +25,18 @@ namespace TransactCQRS.EventStore
 		public abstract AbstractRepository Repository { get;}
 		public abstract Type BaseType { get; }
 
-		/// <summary>
-		/// Load transaction from store.
-		/// </summary>
-		internal static TTransaction Load<TTransaction>(AbstractRepository repository, string identity) where TTransaction : AbstractTransaction
-		{
-			var events = repository.LoadTransaction(identity).ToArray();
-			if (!events.Any())
-				throw new ArgumentOutOfRangeException(nameof(identity));
-			var @event = events.First();
-			if (@event.EventName != $"{typeof(TTransaction).Name} started." || @event.Identity != @event.Root || @event.Identity != @event.Transaction)
-				throw new InvalidOperationException(Resources.TextResource.UnsupportedTransactionType);
-			var result = (TTransaction)TransactionBuilder.CreateInstance<TTransaction>(repository, (string)@event.Params["description"])
-				.LoadEvents(events.Skip(1));
-			result.SetIdentity(result, identity);
-			return result;
-		}
-
-		/// <summary>
-		/// Create new transaction.
-		/// </summary>
-		internal static TTransaction Create<TTransaction>(AbstractRepository repository, string description) where TTransaction : AbstractTransaction
-		{
-			var result = TransactionBuilder.CreateInstance<TTransaction>(repository, description);
-			var @params = new Dictionary<string, object> { { "description", description } };
-			result._eventQueue = new ConcurrentQueue<EventData>();
-			result.AddEvent(result, $"{typeof(TTransaction).Name} started.", @params);
-			return result;
-		}
-
 		public TEntity GetEntity<TEntity>(string identity) where TEntity : class
 		{
-			if (!IsSupportedType(typeof(TEntity))) throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
 			TEntity result;
+			if (TryGetEntity(identity, out result))
+				return result;
+			throw new ArgumentOutOfRangeException(nameof(identity));
+		}
+
+		public bool TryGetEntity<TEntity>(string identity, out TEntity result) where TEntity : class
+		{
+			if (!IsSupportedType(typeof(TEntity))) throw new InvalidOperationException(Resources.TextResource.UnsupportedTypeOfEntity);
+			result = null;
 			object loaded;
 			if (_entities.TryGetValue(identity, out loaded))
 			{
@@ -68,12 +46,13 @@ namespace TransactCQRS.EventStore
 			else
 			{
 				var loadedEvents = Repository.LoadEntity(identity).ToArray();
-				if (!loadedEvents.Any()) throw new ArgumentOutOfRangeException(nameof(identity));
+				if (!loadedEvents.Any())
+					return false;
 				result = LoadEntity<TEntity>(loadedEvents);
 				_entities.TryAdd(identity, result);
 				_identities.TryAdd(result, identity);
 			}
-			return result;
+			return true;
 		}
 
 		public string GetIdentity(object entity)
@@ -182,17 +161,20 @@ namespace TransactCQRS.EventStore
 
 		protected abstract bool IsSupportedType(Type type);
 
-		protected abstract AbstractTransaction LoadEvents(IEnumerable<AbstractRepository.EventData> events);
-
 		protected void AddEvent(object root, string eventName, IDictionary<string, object> @params)
 		{
 			_eventQueue.Enqueue(new EventData { Root = root, EventName = eventName, Params = @params });
 		}
 
-		private void SetIdentity(object @event, string identity)
+		protected void SetIdentity(object @event, string identity)
 		{
 			_identities.TryAdd(@event, identity);
 			_entities.TryAdd(identity, @event);
+		}
+
+		protected void StartQueue()
+		{
+			_eventQueue = new ConcurrentQueue<EventData>();
 		}
 
 		private class EventData

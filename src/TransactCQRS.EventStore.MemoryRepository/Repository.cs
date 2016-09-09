@@ -3,57 +3,70 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace TransactCQRS.EventStore.MemoryRepository
 {
 	public class Repository : AbstractRepository
 	{
 		private List<EventData> EventQueue { get; } = new List<EventData>();
+		private readonly object _lockObj = new object();
 		private int _maxIdentity;
 
-		protected override IEnumerable<AbstractRepository.EventData> LoadTransaction(string identity)
+		protected override IEnumerable<TransactionData> LoadWaitingTransactions()
 		{
-			return EventQueue.Where(item => item.Root == identity)
-				.Select(EventData.Clone)
-				.OrderBy(item => int.Parse(item.Identity));
+			lock(_lockObj)
+				return EventQueue.Where(item => !item.TransactionCommitted)
+					.Where(item => item.Root == item.Identity)
+					.Where(item => item.Root == item.Transaction)
+					.OrderBy(item => int.Parse(item.Identity))
+					.Select(item => new TransactionData {Identity = item.Identity, EventName = item.EventName})
+					.ToArray();
+		}
+
+		protected override IEnumerable<AbstractRepository.EventData> LoadTransactionEvents(string identity)
+		{
+			lock (_lockObj)
+				return EventQueue.Where(item => item.Root == identity)
+					.Select(EventData.Clone)
+					.OrderBy(item => int.Parse(item.Identity))
+					.ToArray();
 		}
 
 		protected override IEnumerable<AbstractRepository.EventData> LoadEntity(string identity)
 		{
-			return EventQueue.Where(item => item.Root == identity)
-				.Where(item => item.TransactionCommitted)
-				.Select(EventData.Clone)
-				.OrderBy(item => int.Parse(item.Identity));
+			lock (_lockObj)
+				return EventQueue.Where(item => item.Root == identity)
+					.Where(item => item.TransactionCommitted)
+					.Select(EventData.Clone)
+					.OrderBy(item => int.Parse(item.Identity))
+					.ToArray();
 		}
 
 		protected override void SaveTransaction(int count, Func<Func<string>, IEnumerable<AbstractRepository.EventData>> getEvents)
 		{
-			var startIdentity = _maxIdentity;
-			_maxIdentity += count;
+			var startIdentity = Interlocked.Add(ref _maxIdentity, count) - count;
 			var result = getEvents(() => startIdentity++.ToString())
 				.Select(EventData.Clone)
 				.ToArray();
-			CheckSupportedParameters(result);
-			EventQueue.AddRange(result);
+			lock (_lockObj)
+			{
+				EventQueue.AddRange(result);
+			}
 		}
 
 		protected override void CommitTransaction(string identity)
 		{
-			EventQueue.Where(item => item.Transaction == identity)
-				.ToList()
-				.ForEach(item => item.TransactionCommitted = true);
+			lock (_lockObj)
+				EventQueue.Where(item => item.Transaction == identity)
+					.ToList()
+					.ForEach(item => item.TransactionCommitted = true);
 		}
 
 		protected override void RollbackTransaction(string identity)
 		{
-			EventQueue.RemoveAll(item => item.Transaction == identity);
-		}
-
-		private void CheckSupportedParameters(EventData[] events)
-		{
-			if (events.SelectMany(item => item.Params.Values)
-				.Any(item => item.IsSupportedClass()))
-				throw new ArgumentOutOfRangeException(nameof(events), Resources.TextResource.OnlyValueTypeSupported);
+			lock (_lockObj)
+				EventQueue.RemoveAll(item => item.Transaction == identity);
 		}
 
 		private new class EventData : AbstractRepository.EventData

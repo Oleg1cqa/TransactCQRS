@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Cassandra;
 using Xunit;
 
@@ -10,17 +12,154 @@ namespace TransactCQRS.EventStore.Tests
 {
 	public class AbstractRepositoryBehavior
 	{
+		private static readonly Cluster Cluster;
+
+		static AbstractRepositoryBehavior()
+		{
+			Cluster = Cluster.Builder()
+				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
+				.Build();
+		}
+
 		public static IEnumerable<object[]> GetTestRepositories()
 		{
-			yield return new object[] { new MemoryRepository.Repository() };
-			var session = Cluster.Builder()
-				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
-				.Build()
-				.Connect();
-			const string keyspace = "test_6";
-			session.CreateKeyspaceIfNotExists(keyspace);
-			session.ChangeKeyspace(keyspace);
-			yield return new object[] { new CassandraRepository.Repository(session) };
+			yield return new object[] {new MemoryRepository.Repository()};
+			var result = Cluster.Connect();
+			const string keyspace = "test_15";
+			result.CreateKeyspaceIfNotExists(keyspace);
+			result.ChangeKeyspace(keyspace);
+			yield return new object[] {new CassandraRepository.Repository(result)};
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldReadEntitiesManyTimes(AbstractRepository repository)
+		{
+			string identity;
+			using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
+			{
+				var entity = transaction.CreateTestEntity("TestName");
+				entity.MakeOperation1(456);
+				entity.MakeOperation2(456);
+				transaction.Commit();
+				identity = entity.GetIdentity();
+			}
+			Parallel.For(0, 10, id =>
+			{
+				for (var i = 0; i < 500; i++)
+				{
+					using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2.")
+					)
+					{
+						var entity = transaction.GetEntity<TestEntity>(identity);
+						Assert.NotNull(entity);
+						Assert.Equal("TestName", entity.Name);
+						Assert.Equal("AfterMakeOperation2", entity.State);
+						Assert.Equal(456, entity.Testparametr);
+					}
+				}
+			});
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldWriteEntitiesManyTimes(AbstractRepository repository)
+		{
+			var cancelation = new CancellationTokenSource();
+			var cancelToken = cancelation.Token;
+			Task.Run(() =>
+			{
+				while (!cancelToken.IsCancellationRequested)
+				{
+					try
+					{
+						repository.GetWaitingTransactions()
+							.ToList()
+							.ForEach(item => item.Load().Commit());
+					}
+					catch (Exception)
+					{
+						// Ignore errors
+					}
+				}
+				cancelToken.ThrowIfCancellationRequested();
+			}, cancelToken);
+			try
+			{
+				Parallel.For(0, 10, id =>
+				{
+					for (var i = 0; i < 500; i++)
+					{
+						using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
+						{
+							var entity = transaction.CreateTestEntity("TestName");
+							entity.MakeOperation1(456);
+							entity.MakeOperation2(456);
+							transaction.Save();
+						}
+					}
+				});
+			}
+			finally
+			{
+				cancelation.Cancel();
+			}
+		}
+
+		[Theory]
+		[MemberData(nameof(GetTestRepositories))]
+		public void ShouldGetWaitedTransactionsManyTimes(AbstractRepository repository)
+		{
+			var cancelation = new CancellationTokenSource();
+			var cancelToken = cancelation.Token;
+			Task.Run(() =>
+			{
+				while (!cancelToken.IsCancellationRequested)
+				{
+					try
+					{
+						repository.GetWaitingTransactions()
+							.ToList()
+							.ForEach(item => item.Load().Commit());
+					}
+					catch
+					{
+						//Ignore errors.
+					}
+				}
+				cancelToken.ThrowIfCancellationRequested();
+			}, cancelToken);
+			try
+			{
+				Parallel.For(0, 10, id =>
+				{
+					for (var i = 0; i < 50; i++)
+					{
+						string identity;
+						using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
+						{
+							var entity = transaction.CreateTestEntity("TestName");
+							entity.MakeOperation1(456);
+							transaction.Save();
+							identity = entity.GetIdentity();
+						}
+						using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
+						{
+							TestEntity entity = null;
+							// ReSharper disable once AccessToDisposedClosure
+							SpinWait.SpinUntil(() => transaction.TryGetEntity(identity, out entity), TimeSpan.FromSeconds(5));
+							Assert.NotNull(entity);
+							Assert.Equal("TestName", entity.Name);
+							Assert.Equal("AfterMakeOperation1", entity.State);
+							Assert.Equal(456, entity.Testparametr);
+						}
+					}
+				});
+			}
+			finally
+			{
+				cancelation.Cancel();
+			}
 		}
 
 		[Theory]

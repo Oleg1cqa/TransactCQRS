@@ -10,19 +10,16 @@ namespace TransactCQRS.EventStore.Builders
 {
 	internal class TransactionBuilder
 	{
-		private static readonly Dictionary<Type, Type> TypeCache = new Dictionary<Type, Type>();
-		private static readonly object LockObject = new object();
-
 		private readonly StringBuilder _entityClasses = new StringBuilder();
 		private readonly StringBuilder _entityLoaders = new StringBuilder();
 		private readonly string _ownerName;
 
 		public readonly Dictionary<Type, string> Entities = new Dictionary<Type, string>();
 		public string ClassName { get; }
-		public string QualifiedClassName => $"CQRSDynamicCode.{ClassName}";
+		public string QualifiedClassFactoryName => $"CQRSDynamicCode.{ClassName}+Factory";
 		public Type BaseType { get; }
 
-		private TransactionBuilder(Type transactionType)
+		internal TransactionBuilder(Type transactionType)
 		{
 			BaseType = transactionType;
 
@@ -30,21 +27,10 @@ namespace TransactCQRS.EventStore.Builders
 			_ownerName = Utils.ProtectName("owner");
 		}
 
-		public static TTransaction CreateInstance<TTransaction>(AbstractRepository repository, string description) where TTransaction : AbstractTransaction
-		{
-			lock (LockObject)
-			{
-				Type result;
-				if (!TypeCache.TryGetValue(typeof(TTransaction), out result))
-					TypeCache.Add(typeof(TTransaction), 
-						result = Utils.CompileAndLoad(new TransactionBuilder(typeof(TTransaction))));
-				return (TTransaction) Activator.CreateInstance(result, repository, description);
-			}
-		}
-
 		public string BuildClass()
 		{
 			var baseTypeName = BaseType.ToCsDeclaration();
+			var rootEventName = BaseType.FullName;
 			var eventsLoader = new StringBuilder();
 			var result = $@"
 				using System;
@@ -71,6 +57,21 @@ namespace TransactCQRS.EventStore.Builders
 						{{
 							Repository = repository;
 							Description = description;
+							StartQueue();
+							var @params = new Dictionary<string, object> {{ {{ ""description"", description}} }};
+							AddEvent(this, ""{rootEventName}"", @params);
+						}}
+
+						public {$"{ClassName}"}(AbstractRepository repository, IEnumerable<AbstractRepository.EventData> events)
+						{{
+							Repository = repository;
+							var eventsArr = events.ToArray();
+							var @event = eventsArr.First();
+							if (@event.EventName != ""{rootEventName}"" || @event.Identity != @event.Root || @event.Identity != @event.Transaction)
+								throw new InvalidOperationException(""Unsupported transaction type."");
+							Description = (string)@event.Params[""description""];
+							LoadEvents(eventsArr.Skip(1));
+							SetIdentity(this, @event.Identity);
 						}}
 
 						public {baseTypeName} Load()
@@ -88,7 +89,7 @@ namespace TransactCQRS.EventStore.Builders
 							throw new System.InvalidOperationException(""Unsupported type of entity detected."");
 						}}
 
-						protected override AbstractTransaction LoadEvents(IEnumerable<AbstractRepository.EventData> events)
+						private AbstractTransaction LoadEvents(IEnumerable<AbstractRepository.EventData> events)
 						{{
 							_loading = true;
 							foreach(var @event in events)
@@ -111,6 +112,21 @@ namespace TransactCQRS.EventStore.Builders
 						{{
 							{BuildIsSupportedType()}
 							return false;
+						}}
+
+						public class Factory : ITransactionFactory
+						{{
+							AbstractTransaction ITransactionFactory.Create(AbstractRepository repository, string description)
+							{{
+								return new {ClassName}(repository, description);
+							}}
+
+							AbstractTransaction ITransactionFactory.Load(AbstractRepository repository, IEnumerable<AbstractRepository.EventData> events)
+							{{
+								return new {ClassName}(repository, events);
+							}}
+
+							string ITransactionFactory.RootEventName {{ get; }} = ""{rootEventName}"";
 						}}
 					}}
 				}}";

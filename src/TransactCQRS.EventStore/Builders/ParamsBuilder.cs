@@ -58,7 +58,7 @@ namespace TransactCQRS.EventStore.Builders
 		{
 			var result = _params.Where(item => item.ParameterType.IsIReference())
 				.Select(item =>
-					$"@event.Params[\"{item.Name}\"] = new LazyLoadReference<{item.ParameterType.GenericTypeArguments[0].ToCsDeclaration()}>(_{ownerName}, (string)@event.Params[\"{item.Name}\"]);")
+					$"@event.Params[\"{item.Name}\"] = new LazyLoadEntity<{item.ParameterType.GenericTypeArguments[0].ToCsDeclaration()}>(_{ownerName}, (string)@event.Params[\"{item.Name}\"]);")
 				.Concat(_params.Where(item => item.ParameterType.IsSupportedClass())
 					.Where(item => !item.ParameterType.IsIReference())
 					.Select(item =>

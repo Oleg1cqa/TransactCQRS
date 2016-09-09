@@ -2,19 +2,19 @@
 
 namespace TransactCQRS.EventStore.Builders
 {
-	public class LazyLoadReference<TEntity> : IReference<TEntity> where TEntity : class
+	public class LazyLoadEntity<TEntity> : IReference<TEntity> where TEntity : class
 	{
 		public AbstractTransaction Transaction { get; }
 		/// <inheritdoc/>
 		public string Identity { get; }
 		public TEntity Entity { get; private set; }
 
-		public static implicit operator TEntity(LazyLoadReference<TEntity> source)
+		public static implicit operator TEntity(LazyLoadEntity<TEntity> source)
 		{
 			return source.Entity;
 		}
 
-		public LazyLoadReference(AbstractTransaction transaction, string identity)
+		public LazyLoadEntity(AbstractTransaction transaction, string identity)
 		{
 			Transaction = transaction;
 			Identity = identity;

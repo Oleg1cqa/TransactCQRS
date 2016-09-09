@@ -12,6 +12,25 @@ namespace TransactCQRS.Tests
 {
 	public class RabbitMqBehavior
 	{
+		private static readonly Cluster Cluster;
+
+		static RabbitMqBehavior()
+		{
+			Cluster = Cluster.Builder()
+				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
+				.Build();
+		}
+
+		public static IEnumerable<object[]> GetTestRepositories()
+		{
+			yield return new object[] { new EventStore.MemoryRepository.Repository() };
+			var result = Cluster.Connect();
+			const string keyspace = "test_15";
+			result.CreateKeyspaceIfNotExists(keyspace);
+			result.ChangeKeyspace(keyspace);
+			yield return new object[] { new EventStore.CassandraRepository.Repository(result) };
+		}
+
 		private static IModel CreateQueue(string exchangeName, string queueName, string routingKey, out IConnection connection)
 		{
 			connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection();
@@ -20,19 +39,6 @@ namespace TransactCQRS.Tests
 			result.QueueDeclare(queueName, false, false, false, null);
 			result.QueueBind(queueName, exchangeName, routingKey, null);
 			return result;
-		}
-
-		public static IEnumerable<object[]> GetTestRepositories()
-		{
-			yield return new object[] { new EventStore.MemoryRepository.Repository() };
-			var session = Cluster.Builder()
-				.AddContactPoints("127.0.0.1", "127.0.0.2", "127.0.0.3")
-				.Build()
-				.Connect();
-			const string keyspace = "test_6";
-			session.CreateKeyspaceIfNotExists(keyspace);
-			session.ChangeKeyspace(keyspace);
-			yield return new object[] { new EventStore.CassandraRepository.Repository(session) };
 		}
 
 		[Theory]
