@@ -4,7 +4,6 @@ using System;
 using System.Reflection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using TransactCQRS.EventStore;
 
 namespace TransactCQRS.RabbitMqConnector
 {

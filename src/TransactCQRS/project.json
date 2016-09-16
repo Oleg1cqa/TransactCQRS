@@ -2,8 +2,11 @@
   "version": "1.0.0-*",
 
   "dependencies": {
+    "Microsoft.CodeAnalysis.Common": "2.0.0-beta3",
+    "Microsoft.CodeAnalysis.CSharp": "2.0.0-beta3",
     "NETStandard.Library": "1.6.0",
-    "TransactCQRS.EventStore": "1.0.0-*"
+    "System.Collections.Immutable": "1.2.0",
+    "System.Runtime.Loader": "4.0.0"
   },
 
   "frameworks": {

@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using RabbitMQ.Client;
-using TransactCQRS.EventStore;
 
 namespace TransactCQRS.RabbitMqConnector
 {

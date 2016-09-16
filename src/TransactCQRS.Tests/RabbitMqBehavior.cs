@@ -23,7 +23,7 @@ namespace TransactCQRS.Tests
 
 		public static IEnumerable<object[]> GetTestRepositories()
 		{
-			yield return new object[] { new EventStore.MemoryRepository.Repository() };
+			yield return new object[] { new MemoryRepository.Repository() };
 			var result = Cluster.Connect();
 			const string keyspace = "test_15";
 			result.CreateKeyspaceIfNotExists(keyspace);

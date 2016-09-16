@@ -50,7 +50,7 @@ namespace TransactCQRS.Tests.BlockChain
 					.ForEach(item => repository.AddTransaction());
 			}, cancelationToken));
 
-			cancelationSource.CancelAfter(TimeSpan.FromSeconds(4));
+			cancelationSource.CancelAfter(TimeSpan.FromSeconds(6));
 			try
 			{
 				Task.WaitAll(tasks.ToArray());
