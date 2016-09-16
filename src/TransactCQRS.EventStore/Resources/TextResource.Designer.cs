@@ -60,6 +60,15 @@ namespace TransactCQRS.EventStore.Resources {
         }
         
         /// <summary>
+        ///    Ищет локализованную строку, аналогичную The end of a block chain isn&apos;t found..
+        /// </summary>
+        public static string BlockChainEndNotFound {
+            get {
+                return ResourceManager.GetString("BlockChainEndNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///    Ищет локализованную строку, аналогичную Entity haven&apos;t identity in scope of current transaction..
         /// </summary>
         public static string EntityHaventIdentity {

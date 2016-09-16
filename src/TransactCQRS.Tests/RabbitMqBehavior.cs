@@ -61,13 +61,10 @@ namespace TransactCQRS.Tests
 					}
 				};
 				repository.OnTransactionSaved = new TransactionSender(queue, exchangeName, routingKey).Send;
-				string transactionId;
-				using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
-				{
-					transaction.CreateCustomer("TestName");
-					transaction.Save();
-					transactionId = transaction.GetIdentity();
-				}
+				var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test.");
+				transaction.CreateCustomer("TestName");
+				transaction.Save();
+				var transactionId = transaction.GetIdentity();
 				SpinWait.SpinUntil(() => finished, 5000);
 
 				Assert.True(finished);

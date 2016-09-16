@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TransactCQRS.EventStore.BlockChain;
 using TransactCQRS.EventStore.Builders;
 
 namespace TransactCQRS.EventStore
@@ -32,6 +33,16 @@ namespace TransactCQRS.EventStore
 			if (!events.Any())
 				throw new ArgumentOutOfRangeException(nameof(identity));
 			return TransactionFactory.Load<TTransaction>(this, events);
+		}
+
+		public void MakeBlockChainMainerStep(string mainerIdentity)
+		{
+			new Mainer(null, null, 10, mainerIdentity).Start();
+		}
+
+		public void CleanBranches()
+		{
+			throw new NotImplementedException();
 		}
 
 		/// <summary>

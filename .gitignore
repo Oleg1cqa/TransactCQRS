@@ -243,3 +243,6 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/Docs/bigchaindb-whitepaper.pdf
+/Docs/Raft dissertation.pdf
+/Docs/raft.pdf

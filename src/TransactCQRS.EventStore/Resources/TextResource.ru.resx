@@ -147,4 +147,7 @@
   <data name="TransactionReadOnly" xml:space="preserve">
     <value>Транзакция доступна только для чтения.</value>
   </data>
+  <data name="BlockChainEndNotFound" xml:space="preserve">
+    <value>Конец цепочки не найден.</value>
+  </data>
 </root>

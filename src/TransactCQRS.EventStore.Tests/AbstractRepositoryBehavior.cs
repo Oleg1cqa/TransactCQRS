@@ -35,28 +35,22 @@ namespace TransactCQRS.EventStore.Tests
 		[MemberData(nameof(GetTestRepositories))]
 		public void ShouldReadEntitiesManyTimes(AbstractRepository repository)
 		{
-			string identity;
-			using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
-			{
-				var entity = transaction.CreateTestEntity("TestName");
-				entity.MakeOperation1(456);
-				entity.MakeOperation2(456);
-				transaction.Commit();
-				identity = entity.GetIdentity();
-			}
+			var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test.");
+			var entity = transaction.CreateTestEntity("TestName");
+			entity.MakeOperation1(456);
+			entity.MakeOperation2(456);
+			transaction.Commit();
+			var identity = entity.GetIdentity();
 			Parallel.For(0, 10, id =>
 			{
 				for (var i = 0; i < 500; i++)
 				{
-					using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2.")
-					)
-					{
-						var entity = transaction.GetEntity<TestEntity>(identity);
-						Assert.NotNull(entity);
-						Assert.Equal("TestName", entity.Name);
-						Assert.Equal("AfterMakeOperation2", entity.State);
-						Assert.Equal(456, entity.Testparametr);
-					}
+					var newTransaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2.");
+					var result = newTransaction.GetEntity<TestEntity>(identity);
+					Assert.NotNull(result);
+					Assert.Equal("TestName", result.Name);
+					Assert.Equal("AfterMakeOperation2", result.State);
+					Assert.Equal(456, result.Testparametr);
 				}
 			});
 		}
@@ -90,13 +84,11 @@ namespace TransactCQRS.EventStore.Tests
 				{
 					for (var i = 0; i < 500; i++)
 					{
-						using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
-						{
-							var entity = transaction.CreateTestEntity("TestName");
-							entity.MakeOperation1(456);
-							entity.MakeOperation2(456);
-							transaction.Save();
-						}
+						var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test.");
+						var entity = transaction.CreateTestEntity("TestName");
+						entity.MakeOperation1(456);
+						entity.MakeOperation2(456);
+						transaction.Save();
 					}
 				});
 			}
@@ -135,24 +127,19 @@ namespace TransactCQRS.EventStore.Tests
 				{
 					for (var i = 0; i < 50; i++)
 					{
-						string identity;
-						using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
-						{
-							var entity = transaction.CreateTestEntity("TestName");
-							entity.MakeOperation1(456);
-							transaction.Save();
-							identity = entity.GetIdentity();
-						}
-						using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
-						{
-							TestEntity entity = null;
-							// ReSharper disable once AccessToDisposedClosure
-							SpinWait.SpinUntil(() => transaction.TryGetEntity(identity, out entity), TimeSpan.FromSeconds(5));
-							Assert.NotNull(entity);
-							Assert.Equal("TestName", entity.Name);
-							Assert.Equal("AfterMakeOperation1", entity.State);
-							Assert.Equal(456, entity.Testparametr);
-						}
+						var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test.");
+						var entity = transaction.CreateTestEntity("TestName");
+						entity.MakeOperation1(456);
+						transaction.Save();
+						var identity = entity.GetIdentity();
+						var newTransaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2.");
+						TestEntity result = null;
+						// ReSharper disable once AccessToDisposedClosure
+						SpinWait.SpinUntil(() => newTransaction.TryGetEntity(identity, out result), TimeSpan.FromSeconds(5));
+						Assert.NotNull(result);
+						Assert.Equal("TestName", result.Name);
+						Assert.Equal("AfterMakeOperation1", result.State);
+						Assert.Equal(456, result.Testparametr);
 					}
 				});
 			}
@@ -167,13 +154,10 @@ namespace TransactCQRS.EventStore.Tests
 		public void ShouldReadCommittedTransaction(AbstractRepository repository)
 		{
 			repository.OnTransactionSaved = (item) => item.Commit();
-			string transactionId;
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
-			{
-				transaction.CreateCustomer("TestName");
-				transaction.Save();
-				transactionId = transaction.GetIdentity();
-			}
+			var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test.");
+			transaction.CreateCustomer("TestName");
+			transaction.Save();
+			var transactionId = transaction.GetIdentity();
 			Assert.NotNull(repository.GetTransaction<OrderTransaction>(transactionId));
 		}
 
@@ -182,13 +166,10 @@ namespace TransactCQRS.EventStore.Tests
 		public void ShouldFailOnReadFailedTransaction(AbstractRepository repository)
 		{
 			repository.OnTransactionSaved = (item) => item.Rollback();
-			string transactionId;
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test."))
-			{
-				transaction.CreateCustomer("TestName");
-				transaction.Save();
-				transactionId = transaction.GetIdentity();
-			}
+			var transaction = repository.StartTransaction<OrderTransaction>("Started ShouldReadTransaction test.");
+			transaction.CreateCustomer("TestName");
+			transaction.Save();
+			var transactionId = transaction.GetIdentity();
 			Assert.Throws<ArgumentOutOfRangeException>(() => repository.GetTransaction<OrderTransaction>(transactionId));
 		}
 
@@ -196,76 +177,59 @@ namespace TransactCQRS.EventStore.Tests
 		[MemberData(nameof(GetTestRepositories))]
 		public void ShouldGetCommitedEntity(AbstractRepository repository)
 		{
-			string identity;
-			using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test."))
-			{
-				var entity = transaction.CreateTestEntity("TestName");
-				entity.MakeOperation1(456);
-				transaction.Commit();
-				identity = entity.GetIdentity();
-			}
-			using (var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2."))
-			{
-				var entity = transaction.GetEntity<TestEntity>(identity);
-				Assert.Equal("TestName", entity.Name);
-				Assert.Equal("AfterMakeOperation1", entity.State);
-				Assert.Equal(456, entity.Testparametr);
-			}
+			var transaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test.");
+			var entity = transaction.CreateTestEntity("TestName");
+			entity.MakeOperation1(456);
+			transaction.Commit();
+			var identity = entity.GetIdentity();
+			var newTransaction = repository.StartTransaction<TestTransaction>("Started ShouldGetCommitEntity test part 2.");
+			var result = newTransaction.GetEntity<TestEntity>(identity);
+
+			Assert.Equal("TestName", result.Name);
+			Assert.Equal("AfterMakeOperation1", result.State);
+			Assert.Equal(456, result.Testparametr);
 		}
 
 		[Theory]
 		[MemberData(nameof(GetTestRepositories))]
 		public void ShouldSerializeDeserializeTranzaction(AbstractRepository repository)
 		{
-			string identity;
-			using (var transaction = repository.StartTransaction<TestTransaction>("Started test transaction."))
-			{
-				var entity = transaction.CreateTestEntity("TestName");
-				entity.MakeOperation1(456);
-				transaction.SetCreator("Oleg");
-				transaction.Commit();
-				identity = transaction.GetIdentity();
-			}
-			using (var transaction = repository.GetTransaction<TestTransaction>(identity))
-			{
-				Assert.Equal("Started test transaction.", transaction.Description);
-				Assert.Equal("Oleg", transaction.Creator);
-			}
+			var transaction = repository.StartTransaction<TestTransaction>("Started test transaction.");
+			var entity = transaction.CreateTestEntity("TestName");
+			entity.MakeOperation1(456);
+			transaction.SetCreator("Oleg");
+			transaction.Commit();
+			var identity = transaction.GetIdentity();
+			var result = repository.GetTransaction<TestTransaction>(identity);
+
+			Assert.Equal("Started test transaction.", result.Description);
+			Assert.Equal("Oleg", result.Creator);
 		}
 
 		[Theory]
 		[MemberData(nameof(GetTestRepositories))]
 		public void ShouldReferencedCorrectly(AbstractRepository repository)
 		{
-			string product1Id;
-			string product2Id;
-			string orderId;
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Create products."))
-			{
-				var product1 = transaction.CreateProduct("product1");
-				var product2 = transaction.CreateProduct("product2");
-				transaction.Commit();
-				product1Id = product1.GetIdentity();
-				product2Id = product2.GetIdentity();
-			}
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Create order."))
-			{
-				var customer = transaction.CreateCustomer("Customer name");
-				var order = transaction.CreateOrder(customer.GetReference());
-				order.AddLine(order.CreateLine(transaction.GetEntity<Product>(product1Id).GetReference()));
-				order.AddLine(order.CreateLine(transaction.GetEntity<Product>(product2Id).GetReference()));
-				transaction.Commit();
-				orderId = order.GetIdentity();
-			}
-			using (var transaction = repository.StartTransaction<OrderTransaction>("Create order."))
-			{
-				var order = transaction.GetEntity<Order>(orderId);
-				var customer = order.Customer.Load();
-				var product = order.Lines.First().Product.Load();
+			var transaction = repository.StartTransaction<OrderTransaction>("Create products.");
+			var product1 = transaction.CreateProduct("product1");
+			var product2 = transaction.CreateProduct("product2");
+			transaction.Commit();
+			var product1Id = product1.GetIdentity();
+			var product2Id = product2.GetIdentity();
+			transaction = repository.StartTransaction<OrderTransaction>("Create order.");
+			var customer = transaction.CreateCustomer("Customer name");
+			var order = transaction.CreateOrder(customer.GetReference());
+			order.AddLine(order.CreateLine(transaction.GetEntity<Product>(product1Id).GetReference()));
+			order.AddLine(order.CreateLine(transaction.GetEntity<Product>(product2Id).GetReference()));
+			transaction.Commit();
+			var orderId = order.GetIdentity();
+			transaction = repository.StartTransaction<OrderTransaction>("Create order.");
+			order = transaction.GetEntity<Order>(orderId);
+			customer = order.Customer.Load();
+			var product = order.Lines.First().Product.Load();
 
-				Assert.Equal("product1", product.Name);
-				Assert.Equal("Customer name", customer.Name);
-			}
+			Assert.Equal("product1", product.Name);
+			Assert.Equal("Customer name", customer.Name);
 		}
 
 		public abstract class OrderTransaction : AbstractTransaction

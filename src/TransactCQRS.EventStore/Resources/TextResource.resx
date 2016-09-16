@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BlockChainEndNotFound" xml:space="preserve">
+    <value>The end of a block chain isn't found.</value>
+  </data>
   <data name="EntityHaventIdentity" xml:space="preserve">
     <value>Entity haven't identity in scope of current transaction.</value>
   </data>

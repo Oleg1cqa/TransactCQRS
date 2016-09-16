@@ -12,7 +12,7 @@ namespace TransactCQRS.EventStore
 	/// <summary>
 	/// Base class for override real transaction implementation.
 	/// </summary>
-	public abstract class AbstractTransaction : IDisposable
+	public abstract class AbstractTransaction
 	{
 		private ConcurrentQueue<EventData> _eventQueue;
 		private readonly ConcurrentDictionary<string, object> _entities = new ConcurrentDictionary<string, object>();
@@ -67,7 +67,7 @@ namespace TransactCQRS.EventStore
 		{
 			if (_eventQueue == null)
 				throw new InvalidOperationException(Resources.TextResource.TransactionReadOnly);
-			Repository.SaveTransaction(_eventQueue.Count, MakeCommit);
+			Repository.SaveTransaction(_eventQueue.Count, GetEventsForSave);
 			Interlocked.Exchange(ref _eventQueue, null);
 			Repository.OnTransactionSaved?.Invoke(this);
 		}
@@ -85,7 +85,7 @@ namespace TransactCQRS.EventStore
 			Repository.RollbackTransaction(GetIdentity(this));
 		}
 
-		private IEnumerable<AbstractRepository.EventData> MakeCommit(Func<string> getNextIdentity)
+		private IEnumerable<AbstractRepository.EventData> GetEventsForSave(Func<string> getNextIdentity)
 		{
 			string transactionIdentity = null;
 			EventData @event;
@@ -145,11 +145,6 @@ namespace TransactCQRS.EventStore
 			return @params;
 		}
 
-		public void Dispose()
-		{
-			Interlocked.Exchange(ref _eventQueue, null);
-		}
-
 		public static bool HaveEqualParamNames(IDictionary<string, object> @params, params string[] names)
 		{
 			{
@@ -163,6 +158,8 @@ namespace TransactCQRS.EventStore
 
 		protected void AddEvent(object root, string eventName, IDictionary<string, object> @params)
 		{
+			if (_eventQueue == null)
+				throw new InvalidOperationException(Resources.TextResource.TransactionReadOnly);
 			_eventQueue.Enqueue(new EventData { Root = root, EventName = eventName, Params = @params });
 		}
 

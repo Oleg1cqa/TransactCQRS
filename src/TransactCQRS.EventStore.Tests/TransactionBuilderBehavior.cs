@@ -13,13 +13,11 @@ namespace TransactCQRS.EventStore.Tests
 		{
 			CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 			var repository = new MemoryRepository.Repository();
-			using (var transaction = repository.StartTransaction<TestTransaction>("Started EntityTypeShouldBeDefined test."))
-			{
+			var transaction = repository.StartTransaction<TestTransaction>("Started EntityTypeShouldBeDefined test.");
 
-				var ex = Assert.Throws<InvalidOperationException>(() => transaction.GetEntity<NonPublicEvent>("sdfsd"));
+			var ex = Assert.Throws<InvalidOperationException>(() => transaction.GetEntity<NonPublicEvent>("sdfsd"));
 
-				Assert.Equal("Unsupported type of entity.", ex.Message);
-			}
+			Assert.Equal("Unsupported type of entity.", ex.Message);
 		}
 
 		[Fact]

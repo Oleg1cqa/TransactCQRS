@@ -11,21 +11,16 @@ namespace TransactCQRS.EventStore.Tests
 		public void ShouldThrowWhenTransactionSavedAgain()
 		{
 			var repository = new MemoryRepository.Repository();
-			string identity;
-			using (var transaction = repository.StartTransaction<TestTransaction>("Started test transaction."))
-			{
-				var entity = transaction.CreateTestEntity("TestName");
-				entity.MakeOperation1(456);
-				transaction.SetCreator("Oleg");
-				transaction.Commit();
-				identity = transaction.GetIdentity();
+			var transaction = repository.StartTransaction<TestTransaction>("Started test transaction.");
+			var entity = transaction.CreateTestEntity("TestName");
+			entity.MakeOperation1(456);
+			transaction.SetCreator("Oleg");
+			transaction.Commit();
+			var identity = transaction.GetIdentity();
 
-				Assert.Throws<InvalidOperationException>(() => transaction.Save());
-			}
-			using (var transaction = repository.GetTransaction<TestTransaction>(identity))
-			{
-				Assert.Throws<InvalidOperationException>(() => transaction.Save());
-			}
+			Assert.Throws<InvalidOperationException>(() => transaction.Save());
+			transaction = repository.GetTransaction<TestTransaction>(identity);
+			Assert.Throws<InvalidOperationException>(() => transaction.Save());
 		}
 	}
 }
