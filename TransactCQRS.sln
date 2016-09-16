@@ -12,8 +12,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.EventStore.CassandraRepository", "src\TransactCQRS.EventStore.CassandraRepository\TransactCQRS.EventStore.CassandraRepository.xproj", "{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D}"
-EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS", "src\TransactCQRS\TransactCQRS.xproj", "{D297425E-E5C3-40AF-9589-9153164CE03C}"
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.Tests", "src\TransactCQRS.Tests\TransactCQRS.Tests.xproj", "{12A83000-2B3C-4D02-A8FB-058DF3111A37}"
@@ -22,16 +20,14 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.RabbitMqConnec
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.MemoryRepository", "src\TransactCQRS.MemoryRepository\TransactCQRS.MemoryRepository.xproj", "{A90D4FE7-47C5-439B-9DFD-E7C3F65A1060}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "TransactCQRS.CassandraRepository", "src\TransactCQRS.CassandraRepository\TransactCQRS.CassandraRepository.xproj", "{D77D862E-9267-4BCF-ADE2-E3418814452E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D297425E-E5C3-40AF-9589-9153164CE03C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D297425E-E5C3-40AF-9589-9153164CE03C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D297425E-E5C3-40AF-9589-9153164CE03C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -48,15 +44,19 @@ Global
 		{A90D4FE7-47C5-439B-9DFD-E7C3F65A1060}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A90D4FE7-47C5-439B-9DFD-E7C3F65A1060}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A90D4FE7-47C5-439B-9DFD-E7C3F65A1060}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D77D862E-9267-4BCF-ADE2-E3418814452E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D77D862E-9267-4BCF-ADE2-E3418814452E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D77D862E-9267-4BCF-ADE2-E3418814452E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D77D862E-9267-4BCF-ADE2-E3418814452E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{C92EC61B-18DF-4A44-A8DE-594B69F9FD2D} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 		{D297425E-E5C3-40AF-9589-9153164CE03C} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 		{12A83000-2B3C-4D02-A8FB-058DF3111A37} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 		{D1AE2DD6-57E1-4501-9BA8-EAB89E3F4A82} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 		{A90D4FE7-47C5-439B-9DFD-E7C3F65A1060} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
+		{D77D862E-9267-4BCF-ADE2-E3418814452E} = {F9D343A2-5213-4EC4-A768-EB7F80B3F0A1}
 	EndGlobalSection
 EndGlobal

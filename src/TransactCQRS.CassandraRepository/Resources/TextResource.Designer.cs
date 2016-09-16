@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace TransactCQRS.EventStore.CassandraRepository.Resources {
+namespace TransactCQRS.CassandraRepository.Resources {
     using System;
     using System.Reflection;
     
@@ -38,7 +38,7 @@ namespace TransactCQRS.EventStore.CassandraRepository.Resources {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("TransactCQRS.EventStore.CassandraRepository.Resources.TextResource", typeof(TextResource).GetTypeInfo().Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("TransactCQRS.CassandraRepository.Resources.TextResource", typeof(TextResource).GetTypeInfo().Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

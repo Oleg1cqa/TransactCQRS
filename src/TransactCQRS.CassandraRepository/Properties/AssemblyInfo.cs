@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TransactCQRS.EventStore.CassandraRepository")]
+[assembly: AssemblyProduct("TransactCQRS.CassandraRepository")]
 [assembly: AssemblyCopyright("Copyright © 2016 Starodub Oleg")]
 
 // Setting ComVisible to false makes the types in this assembly not visible
@@ -16,4 +16,4 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("c92ec61b-18df-4a44-a8de-594b69f9fd2d")]
+[assembly: Guid("d77d862e-9267-4bcf-ade2-e3418814452e")]

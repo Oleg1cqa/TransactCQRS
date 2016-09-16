@@ -6,7 +6,6 @@ using Cassandra;
 using RabbitMQ.Client;
 using TransactCQRS.RabbitMqConnector;
 using Xunit;
-using TransactCQRS.EventStore;
 
 namespace TransactCQRS.Tests
 {
@@ -28,7 +27,7 @@ namespace TransactCQRS.Tests
 			const string keyspace = "test_15";
 			result.CreateKeyspaceIfNotExists(keyspace);
 			result.ChangeKeyspace(keyspace);
-			yield return new object[] { new EventStore.CassandraRepository.Repository(result) };
+			yield return new object[] { new CassandraRepository.Repository(result) };
 		}
 
 		private static IModel CreateQueue(string exchangeName, string queueName, string routingKey, out IConnection connection)

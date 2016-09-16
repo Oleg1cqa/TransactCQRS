@@ -28,7 +28,7 @@ namespace TransactCQRS.Tests
 			const string keyspace = "test_15";
 			result.CreateKeyspaceIfNotExists(keyspace);
 			result.ChangeKeyspace(keyspace);
-			yield return new object[] {new EventStore.CassandraRepository.Repository(result)};
+			yield return new object[] {new CassandraRepository.Repository(result)};
 		}
 
 		[Theory]

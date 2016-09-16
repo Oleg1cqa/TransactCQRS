@@ -7,7 +7,7 @@ using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 
-namespace TransactCQRS.EventStore.CassandraRepository
+namespace TransactCQRS.CassandraRepository
 {
 	public class Repository : AbstractRepository
 	{
