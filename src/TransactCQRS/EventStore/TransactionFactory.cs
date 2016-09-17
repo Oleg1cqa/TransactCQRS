@@ -94,10 +94,8 @@ namespace TransactCQRS.EventStore
 			yield return MetadataReference.CreateFromFile(typeof(AbstractTransaction).GetTypeInfo().Assembly.Location);
 			yield return MetadataReference.CreateFromFile(typeof(Enumerable).GetTypeInfo().Assembly.Location);
 			yield return MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location);
-
-			var assemblyPath = Path.GetDirectoryName(typeof(object).GetTypeInfo().Assembly.Location);
-			yield return MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "mscorlib.dll"));
-			yield return MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Runtime.dll"));
+			yield return MetadataReference.CreateFromFile(Assembly.Load(new AssemblyName("System.Runtime")).Location);
+			yield return MetadataReference.CreateFromFile(Assembly.Load(new AssemblyName("mscorlib")).Location);
 		}
 	}
 }

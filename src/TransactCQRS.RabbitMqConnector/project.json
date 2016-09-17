@@ -3,7 +3,7 @@
 
   "dependencies": {
     "NETStandard.Library": "1.6.0",
-    "RabbitMQ.Client": "4.1.0-rc1",
+    "RabbitMQ.Client": "4.1.0",
     "TransactCQRS": "1.0.0-*"
   },
 

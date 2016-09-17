@@ -50,6 +50,7 @@ namespace TransactCQRS.EventStore
 						public string Identity => GetIdentity(this);
 
 						public override string Description {{ get;}}
+						public override DateTimeOffset CreateDate {{ get; }}
 						public override AbstractRepository Repository {{ get;}}
 						public override Type BaseType {{ get; }} = typeof({baseTypeName});
 
